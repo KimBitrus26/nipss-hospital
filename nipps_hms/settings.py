@@ -14,7 +14,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 DEBUG = os.getenv('DEBUG')
 
 
-ALLOWED_HOSTS = ["34.195.227.158", "127.0.0.1"]
+ALLOWED_HOSTS = ["34.195.227.158", "127.0.0.1", "ec2-34-195-227-158.compute-1.amazonaws.com"]
 
 
 # Application definition
