@@ -1,0 +1,105 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Login{% endblock %}
+
+    {% block extra_css %}
+    <style>
+         .content {
+            padding: 16px;
+            margin-top: 70px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .login-container {
+            background-color: rgba(255, 255, 255, 0.8); /* Add a semi-transparent white background to improve text visibility */
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+
+        }
+
+        .login-container h2 {
+            color: #333;
+        }
+
+        .login-form {
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+    </style>
+{% endblock %}
+
+
+{% block body %}
+   
+<div class="content">
+
+    <div class="login-container">
+        <h2>NIPPS HOSPITAL</h2>
+        <div>
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <p{% if message.tags %} class="{{ message.tags }}"{% endif %} style="text-align: center; color: green;">{{ message }}</p>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    
+        </div>
+        <form class="login-form", method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" rows="4" required placeholder="Give reason for this Doctor's appointment booking"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="appointment_date">Appointment Date:</label>
+                <input type="date" id="appointment_date" name="appointment_date" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Book Appointment</button>
+            </div>
+        </form>
+    </div>
+</div>
+   
+
+    {% endblock %}

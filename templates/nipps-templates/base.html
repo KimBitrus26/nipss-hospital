@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .background-image {
+            background-image: url('{% static "images/coat.png" %}');
+            background-size: cover;
+            background-position: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin-top: 30;
+            margin-bottom: 30;
+            z-index: -1; /* Ensure the background stays behind other content */
+            opacity: 0.2; /* Adjust opacity for dimming effect */
+        }
+
+        .navbar {
+            background-color: #4CAF50; /* Green color */
+            overflow: hidden;
+        }
+        .navbar-text {
+            display: flex;
+            justify-content: center;
+        }
+
+        .navbar a {
+            float: left;
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px;
+            text-decoration: none;
+            width: 15%; /* Spread evenly */
+        }
+
+        .navbar a:hover {
+            background-color: #45a049;
+            color: black;
+        } 
+        .footer {
+            background-color: #4CAF50; /* Green color */
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            font-size: 14px; /* Adjust font size for better responsiveness */
+        }
+
+        @media screen and (max-width: 600px) {
+            .navbar a {
+                float: none;
+                display: block;
+                text-align: left;
+                width: 100%; /* Full width for small screens */
+                box-sizing: border-box;
+            }
+        }
+    </style>
+    {% block extra_css %}
+    {% endblock %}
+</head>
+
+<body>
+    {% if user.is_authenticated and user.is_receptionist %}
+    <div class="navbar">
+        <div class="navbar-text">
+        <a href="{% url 'register_patient' %}">Register Patient</a>
+        <a href="{% url 'appointments_receptionist' %}">View Appointments</a>
+        <a href="{% url 'get_patients_lists' %}">View Patients</a>
+        <a href="{% url 'get_doctor_lists' %}">View Doctors</a>
+        {% if user.is_profile_completed %}
+        <a href="{% url 'receptionist_profile' %}">View Profile</a>
+        {% else %}
+        <a href="{% url 'receptionist_complete_prifile' %}">Complete Profile</a>
+        {% endif %}
+        <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+    {% elif user.is_authenticated and user.is_doctor %}
+    <div class="navbar">
+        <div class="navbar-text">
+        <a href="{% url 'appointments_request' %}">Appointment Requests</a>
+        <a href="{% url 'appointments_approved' %}">Approved Appointments</a> 
+        <a href="{% url 'doctor_attend_patient' %}">Attend to a Patient</a>
+        {% if user.is_profile_completed %}
+        <a href="{% url 'doctor_profile' %}">View Profile</a>
+        {% else %}
+        <a href="{% url 'doctor_complete_prifile' %}">Complete Profile</a>
+        {% endif %}
+
+        <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+    {% elif user.is_authenticated and user.is_phamacist %}
+    <div class="navbar">
+        <div class="navbar-text">
+            <a href="{% url 'pharmacist_search_patient' %}">View Prescription</a>
+            
+            <a href="{% url 'pharmacist_check_patient_payment' %}">View Patient Payment</a>
+            
+            {% if user.is_profile_completed %}
+            <a href="{% url 'pharmacist_profile' %}">View Profile</a>
+            {% else %}
+            <a href="{% url 'pharmicist_complete_prifile' %}">Complete Profile</a>
+            {% endif %}
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+    {% elif user.is_authenticated and user.is_lab_technician %}
+    <div class="navbar">
+        <div class="navbar-text">
+            <a href="{% url 'patient_tested_results' %}">View Results</a>
+            
+            <a href="{% url 'patients_to_be_tested' %}">Patients to be tested</a>
+            
+            <!-- <a href="#view-doctors">Attend to a Patient</a> -->
+            {% if user.is_profile_completed %}
+            <a href="{% url 'lab_profile' %}">View Profile</a>
+            {% else %}
+            <a href="{% url 'lab_complete_prifile' %}">Complete Profile</a>
+            {% endif %}
+            <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+    {% elif user.is_authenticated and user.is_patient %}
+    <div class="navbar">
+        <div class="navbar-text">
+        <a href="{% url 'get_patient_appointments' %}">View My Appointment</a>
+        <a href="{% url 'patient_appoint' %}">Book Appointment</a>
+        {% if user.is_profile_completed %}
+        <a href="{% url 'patient_profile' %}">View Profile</a>
+        {% else %}
+        <a href="">Complete Profile</a>
+        {% endif %}
+        <a href="{% url 'logout' %}">Logout</a>
+        </div>
+    </div>
+    {% else %}
+    <div>
+        
+    </div>
+    {% endif %}
+    
+    <div class="background-image"></div>
+
+        {% block body %}
+        {% endblock %}
+
+    <div class="footer">
+        <p>&copy; 2024 NIPPS Hospital By Kim</p>
+    </div>
+
+</body>
+
+</html>

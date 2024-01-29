@@ -1,0 +1,149 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Admin Receptionist{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+
+       
+        .register-container {
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 500px;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 50px;
+            
+        }
+
+        .register-container h2 {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .form-group select {
+            width: 100%;
+        }
+
+        .form-group button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</style>
+
+{% endblock %}
+
+{% block body %}
+
+    <div class="content">
+        <!-- Content Goes Here -->
+        <div class="register-container">
+            <h2>NIPSS HOSPITAL</h2>
+            <p>Open Patient File</p>
+            <div>
+                {% if messages %}
+                    <ul class="messages">
+                        {% for message in messages %}
+                            <p{% if message.tags %} class="{{ message.tags }}"{% endif %} style="text-align: center; color: green;">{{ message }}</p>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <form class="register-form" method="post" action="{% url 'create_patient_file' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="first_name">Email:</label>
+                    <input type="email" id="email" name="email" required placeholder="Patient Registed Email">
+                </div>
+                <div class="form-group">
+                    <label for="first_name">First Name:</label>
+                    <input type="text" id="first_name" name="first_name" required placeholder="Patient first name">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name:</label>
+                    <input type="text" id="last_name" name="last_name" required placeholder="Patient last name">
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender:</label>
+                    <select id="gender" name="gender" required>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <!-- Add other gender options as needed -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date_of_birth">Date of Birth:</label>
+                    <input type="date" id="date_of_birth" name="date_of_birth" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">Address:</label>
+                    <input type="text" id="address" name="address" required placeholder="Patient address">
+                </div>
+                <div class="form-group">
+                    <label for="city">City:</label>
+                    <input type="text" id="city" name="city" required placeholder="Patient city">
+                </div>
+                <div class="form-group">
+                    <label for="state">State:</label>
+                    <input type="text" id="state" name="state" required placeholder="Patient state">
+                </div>
+                <div class="form-group">
+                    <label for="country">Country:</label>
+                    <input type="text" id="country" name="country" value="Nigeria" required placeholder="Patient country">
+                </div>
+               
+                <div class="form-group">
+                    <button type="submit">Open File</button>
+                </div>
+            </form>
+        </div>
+       
+    </div>
+
+    {% endblock %}

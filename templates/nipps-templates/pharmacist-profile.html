@@ -1,0 +1,75 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+   .content {
+            padding: 100px;
+            display: flex;
+            justify-content: center;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+</style>
+{% endblock %}
+
+{% block body %}
+
+<div class="content">
+    <!-- Content Goes Here -->
+    <div class="register-container">
+        <h2>NIPSS HOSPITAL</h2>
+        <p>Pharmacist Profile</p>
+        <div>
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <p{% if message.tags %} class="{{ message.tags }}"{% endif %} style="text-align: center; color: green;">{{ message }}</p>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+
+        <!-- Display user's profile information -->
+        <div class="form-group">
+            <label for="first_name">First Name:</label>
+            <span id="first_name">{{ pharmacist.first_name }}</span>
+        </div>
+        <div class="form-group">
+            <label for="last_name">Last Name:</label>
+            <span id="last_name">{{ pharmacist.last_name }}</span>
+        </div>
+        <div class="form-group">
+            <label for="gender">Gender:</label>
+            <span id="gender">{{ pharmacist.gender }}</span>
+        </div>
+        <div class="form-group">
+            <label for="address">Address:</label>
+            <span id="address">{{ pharmacist.address }}</span>
+        </div>
+        <div class="form-group">
+            <label for="city">City:</label>
+            <span id="city">{{ pharmacist.city }}</span>
+        </div>
+        <div class="form-group">
+            <label for="state">State:</label>
+            <span id="state">{{ pharmacist.state }}</span>
+        </div>
+        <div class="form-group">
+            <label for="country">Country:</label>
+            <span id="country">{{ pharmacist.country }}</span>
+        </div>
+
+        <!-- Add an "Edit" button to allow users to update their profile -->
+        <div class="form-group">
+            <a href="" class="button">Edit Profile</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Patient List{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+        .list-users {
+            display: flex;
+            justify-content: center;
+        }
+        .no-patient {
+            display: flex;
+            justify-content: center;
+        }
+        .book-doctor {
+            display: flex;
+            justify-content: center;
+            margin-top: 60px;
+        }
+        .button-booking {
+            background-color: green;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            color: white;
+            justify-content: center;
+            font-size: 50px;
+            border: radius 2px;
+
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+       
+    </style>
+ </style>
+
+ {% endblock %}
+ 
+ 
+ {% block body %}
+
+    <div class="content">
+        <div class="list-users">
+            <h2 >Patient Payment Status</h2>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Transaction Ref</th>
+                    <th>Firt Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Amount</th>
+                    <th>Payment Confirmed</th>
+                </tr>
+            </thead>
+            <tbody>
+            
+                <tr>
+                    <td>{{ transaction.ref }}</td>
+                    <td>{{ transaction.first_name }}</td>
+                    <td>{{ transaction.last_name }}</td>
+                    <td>{{ transaction.email }}</td>
+                    <td>{{ amount }}</td>
+                    <td>
+                        {% if transaction.verified %}
+                        <p>Yes</p>
+                        {% else %}
+                        No
+                        {% endif %}
+                    </td>
+                    <td>{{ patient.gender }}</td>
+                   
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    {% endblock %} 

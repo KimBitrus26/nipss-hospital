@@ -1,0 +1,111 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Patient List{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+        .no-doctor {
+            display: flex;
+            justify-content: center;
+        }
+        .list-users {
+            display: flex;
+            justify-content: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+       
+    </style>
+ </style>
+
+ {% endblock %}
+ 
+ 
+ {% block body %}
+
+    <div class="content">
+        <div class="list-users">
+            <h2 >Patient Results</h2>
+        </div>
+        {% if patient_diagnostics %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Lab Test Requested</th>
+                    <th>Lab Test Performed</th>
+                    <th>Test Request created on</th>
+                    <th>Lat Test Result</th>
+                    <th>Prescription</th>
+                </tr>
+            </thead>
+           
+            <tbody>
+                
+                {% for patient in patient_diagnostics %}  
+                <tr>
+                    <td>{{ patient.description }}</td>
+                    <td>
+                        {% if patient.lab_test_requested %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if patient.lab_test_performed %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+                   <td>{{ patient.created_at }}</td>
+                    <td>
+                        {% if patient.lab_test_result %}
+                        {{ patient.lab_test_result }}
+                    {% else %}
+                        Result not yet out
+                    {% endif %}
+                        
+                    </td>
+                    <td><a href="{% url 'doctor_patient_test_prescription' patient.id %}">Prescribe</a></td>
+                                   
+
+                </tr>
+            
+                {% endfor %}
+            </tbody>
+           
+        </table>
+        {% else %}
+        <div class="no-doctor">
+            <p>No Results</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% endblock %} 

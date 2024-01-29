@@ -1,0 +1,108 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Resend Code{% endblock %}
+
+    {% block extra_css %}
+    <style>
+
+        .content {
+            padding: 16px;
+            display: flex;
+            justify-content: center;
+            margin-top: 100px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+
+        .register-container {
+            background-color: rgba(255, 255, 255, 0.8); /* Add a semi-transparent white background to improve text visibility */
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+            text-align: center;
+        }
+
+        .register-container h2 {
+            color: #333;
+        }
+
+        .register-form {
+            margin-top: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group button {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .form-group button:hover {
+            background-color: #45a049;
+        }
+     </style>
+{% endblock %}
+
+
+{% block body %}
+
+
+    <div class="content">
+        <!-- Content Goes Here -->
+        <div class="register-container">
+            <h2>NIPSS HOSPITAL</h2>
+            <div>
+                {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                    <p{% if message.tags %} class="{{ message.tags }}"{% endif %} style="text-align: center; color: green;">{{ message }}</p>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        
+            </div>
+            <form class="register-form" method="post" action="{% url 'resend_otp' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="otp">Phone Number:</label>
+                    <input type="text" id="phone-number" name="phone_number" required placeholder="Enter Phone Number">
+                </div>
+                <div class="form-group">
+                    <button type="submit">Resend OTP</button>
+                </div>
+            </form>
+        </div>
+       
+    </div>
+
+    {% endblock %}
+    
