@@ -3,7 +3,7 @@ from django.core.files.storage import get_storage_class
 
 
 class StaticStorage(S3Boto3Storage):
-    location = 'home/nipps/static'
+    location = 'home/nipss/static'
     default_acl = 'public-read'
 
     def __init__(self, *args, **kwargs):
@@ -17,13 +17,13 @@ class StaticStorage(S3Boto3Storage):
 
 
 class PublicMediaStorage(S3Boto3Storage):
-    location = 'home/nipps/media'
+    location = 'home/nipss/media'
     default_acl = 'public-read'
     file_overwrite = False
 
 
 class PrivateMediaStorage(S3Boto3Storage):
-    location = 'home/nipps/private'
+    location = 'home/nipss/private'
     default_acl = 'private'
     file_overwrite = False
     custom_domain = False

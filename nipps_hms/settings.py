@@ -144,17 +144,17 @@ if USE_S3:
     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
     # s3 static settings
-    AWS_LOCATION = 'home/nipps/static'
+    AWS_LOCATION = 'home/nipss/static'
     STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
     COMPRESS_URL = STATIC_URL
     STATICFILES_STORAGE = 'nipps_hms.storage.StaticStorage'
     COMPRESS_STORAGE = STATICFILES_STORAGE
     # s3 media settings
-    PUBLIC_MEDIA_LOCATION = 'home/nipps/media'
+    PUBLIC_MEDIA_LOCATION = 'home/nipss/media'
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{PUBLIC_MEDIA_LOCATION}/'
     DEFAULT_FILE_STORAGE = 'nipps_hms.storage.PublicMediaStorage'
     # s3 private media settings
-    PRIVATE_MEDIA_LOCATION = 'home/nipps/private'
+    PRIVATE_MEDIA_LOCATION = 'home/nipss/private'
     PRIVATE_FILE_STORAGE = 'nipps_hms.storage.PrivateMediaStorage'
 else:
     STATIC_URL = '/static/'
