@@ -82,10 +82,12 @@ class User(AbstractUser):
     is_active = models.BooleanField(_("Is active"), default=True)
 
     is_patient = models.BooleanField(_("Is Patient"), default=False)
-    is_receptionist = models.BooleanField(_("Is Recepttionist"), default=False)
+    is_nurse = models.BooleanField(_("Is Nurse"), default=False)
     is_doctor = models.BooleanField(_("Is Doctor"), default=False)
     is_lab_technician = models.BooleanField(_("Is Lab Technician"), default=False)
     is_phamacist = models.BooleanField(_("Is Phamacist"), default=False)
+    is_accountant = models.BooleanField(_("Is Accountant"), default=False)
+    
     is_staff = models.BooleanField(_("Staff?"), default=False)
     is_superuser = models.BooleanField(_("Superuser?"), default=False)
 

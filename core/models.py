@@ -1,3 +1,6 @@
+from datetime import datetime
+import pytz
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
@@ -45,7 +48,6 @@ BOOKING_STATUS_CHOICES = ((PENDING, "Pending"), (APPROVED, "Approved"),
                       (ATTENDED, "Attended"),)
 
 
-
 class Doctor(models.Model):
     
     slug = models.SlugField(editable=False)
@@ -76,7 +78,7 @@ class Doctor(models.Model):
         ordering = ("-created_at", )
 
     def __str__(self):
-        return f"Agent Application for Agent {self.first_name}"
+        return f"Doctor {self.first_name}"
 
 
 class Pharmacist(models.Model):
@@ -106,7 +108,37 @@ class Pharmacist(models.Model):
         ordering = ("-created_at", )
 
     def __str__(self):
-        return f"Agent Application for Agent {self.first_name}"
+        return f"Pharmacist {self.first_name}"
+    
+
+class Accountant(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+    gender = models.CharField(
+        max_length=20, choices=GENDER_CHOICES)
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_accountant")
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=256)
+    state = models.CharField(max_length=256)
+    country = models.CharField(max_length=256, default="Nigeria")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ("-created_at", )
+
+    def __str__(self):
+        return f"Accountant {self.first_name}"
 
 
 class LabTechnician(models.Model):
@@ -117,7 +149,7 @@ class LabTechnician(models.Model):
     last_name = models.CharField(max_length=150)
     gender = models.CharField(
         max_length=20, choices=GENDER_CHOICES)
-    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_lab")
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_lab_technician")
     address = models.CharField(max_length=255)
     city = models.CharField(max_length=256)
     state = models.CharField(max_length=256)
@@ -136,7 +168,7 @@ class LabTechnician(models.Model):
         ordering = ("-created_at", )
 
     def __str__(self):
-        return f"Agent Application for Agent {self.first_name}"
+        return f"Lab Technician {self.first_name}"
 
 
 class Patient(models.Model):
@@ -150,7 +182,7 @@ class Patient(models.Model):
     date_of_birth = models.DateField()
     age = models.CharField(
         max_length=10)
-    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="patient_user")
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_patient")
     address = models.CharField(max_length=255)
     city = models.CharField(max_length=256)
     state = models.CharField(max_length=256)
@@ -174,16 +206,15 @@ class Patient(models.Model):
         return f" {self.first_name}"
 
 
-class AdminReceptionist(models.Model):
+class Nurse(models.Model):
     
     slug = models.SlugField(editable=False)
-
     first_name = models.CharField(max_length=150)
     last_name = models.CharField(max_length=150)
     gender = models.CharField(
         max_length=20, choices=GENDER_CHOICES)
    
-    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_admin")
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_nurse")
     address = models.CharField(max_length=255)
     city = models.CharField(max_length=256)
     state = models.CharField(max_length=256)
@@ -202,11 +233,12 @@ class AdminReceptionist(models.Model):
         ordering = ("-created_at", )
 
     def __str__(self):
-        return f"Agent Application for Agent {self.first_name}"
+        return f"Nurse {self.first_name}"
 
 
 class BookAppointment(models.Model):
-    # slug = models.SlugField(editable=False)
+    
+    slug = models.SlugField(editable=False)
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_patient_booking")
     doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_doctor_booking")
     appointment_date = models.DateField(auto_now=True)
@@ -229,8 +261,7 @@ class BookAppointment(models.Model):
 
 class PatientDiagnostic(models.Model):
 
-    # slug = models.SlugField(editable=False)
-
+    slug = models.SlugField(editable=False)
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_patient_diagnostic")
     prescribed_by = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.TextField()
@@ -253,7 +284,8 @@ class PatientDiagnostic(models.Model):
 
 
 class LabTestResult(models.Model):
-    # slug = models.SlugField(editable=False)
+    
+    slug = models.SlugField(editable=False)
     diagnostic_report = models.ForeignKey(PatientDiagnostic, on_delete=models.CASCADE, related_name="lab_test_result_diagnotic")
     lab_technician = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_lab_test_result")
     test_date = models.DateField(auto_now=True)
@@ -274,7 +306,8 @@ class LabTestResult(models.Model):
 
 
 class Prescription(models.Model):
-    # slug = models.SlugField(editable=False)
+    
+    slug = models.SlugField(editable=False)
     diagnostic_report = models.ForeignKey(PatientDiagnostic, on_delete=models.CASCADE, related_name="prescription_diagnostic_report")
     
     prescription = models.TextField()
@@ -295,8 +328,10 @@ class Prescription(models.Model):
     def __str__(self):
         return f"Prescription"
     
+
 class Pharmacy(models.Model):
-    # slug = models.SlugField(editable=False)
+
+    slug = models.SlugField(editable=False)
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE, related_name="pharmacy_prescription")  
     medications = models.TextField()
     is_paid = models.BooleanField(default=False)
@@ -336,3 +371,251 @@ class Transaction(models.Model):
 
     def __str__(self):
         return str(self.ref)
+    
+
+class DeathReport(models.Model):
+
+    slug = models.SlugField(editable=False)
+    patient_name = models.CharField(max_length=100)
+    date_of_death = models.DateField()
+    cause_of_death = models.TextField()
+    attending_physician = models.CharField(max_length=255)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Death Report for {self.patient_name}"
+
+
+class BirthReport(models.Model):
+
+    slug = models.SlugField(editable=False)
+    baby_name = models.CharField(max_length=255)
+    date_of_birth = models.DateField()
+    place_of_birth = models.CharField(max_length=255)
+    parent_names = models.CharField(max_length=255)
+    attending_physician = models.CharField(max_length=255)
+   
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Birth Report")
+        verbose_name_plural = _("Birth Reports")
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.baby_name
+    
+
+class BloodBankReport(models.Model):
+    blood_group_choices = [
+        ('A+', 'A+'),
+        ('A-', 'A-'),
+        ('B+', 'B+'),
+        ('B-', 'B-'),
+        ('AB+', 'AB+'),
+        ('AB-', 'AB-'),
+        ('O+', 'O+'),
+        ('O-', 'O-'),
+    ]
+
+    slug = models.SlugField(editable=False)
+    donor_name = models.CharField(max_length=100)
+    blood_group = models.CharField(max_length=3, choices=blood_group_choices)
+    donation_date = models.DateField()
+    quantity_ml = models.PositiveIntegerField()
+    donor_contact = models.CharField(max_length=15)
+    notes = models.TextField(blank=True, null=True)
+   
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Blood Bank Report")
+        verbose_name_plural = _("Blood Bank Reports")
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+
+    def __str__(self):
+        return f"Blood Bank Report for {self.donor_name}"
+
+
+class Ward(models.Model):
+
+    slug = models.SlugField(editable=False)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    capacity = models.PositiveIntegerField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
+class Bed(models.Model):
+
+    slug = models.SlugField(editable=False)
+    ward = models.ForeignKey(Ward, on_delete=models.CASCADE)
+    bed_number = models.CharField(max_length=20)
+    is_occupied = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.bed_number} - {self.ward}"
+
+class Cabin(models.Model):
+
+    slug = models.SlugField(editable=False)
+    ward = models.ForeignKey(Ward, on_delete=models.CASCADE)
+    cabin_number = models.CharField(max_length=20)
+    is_occupied = models.BooleanField(default=False)
+    capacity = models.PositiveIntegerField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.cabin_number} - {self.ward}"
+
+class Admission(models.Model):
+
+    slug = models.SlugField(editable=False)
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    ward = models.ForeignKey(Ward, on_delete=models.CASCADE)
+    bed = models.ForeignKey(Bed, on_delete=models.CASCADE, blank=True, null=True)
+    cabin = models.ForeignKey(Cabin, on_delete=models.CASCADE, blank=True, null=True)
+    admitted_at = models.DateTimeField(auto_now_add=True)
+    discharged = models.BooleanField(default=False)
+    discharged_at = models.DateTimeField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Admission for {self.patient.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        
+            self.bed.is_occupied = True
+            self.bed.save()
+           
+            self.cabin.is_occupied = True
+            self.cabin.save()
+
+        super().save(*args, **kwargs)
+
+    def discharge(self):
+        # Mark the bed or cabin as available when discharging the patient
+        if self.bed:
+            self.bed.is_occupied = False
+            self.bed.save()
+        if self.cabin:
+            self.cabin.is_occupied = False
+            self.cabin.save()
+
+        self.discharged = True
+        self.discharged_at = datetime.now(pytz.utc)
+        self.save()
+
+
+class Medicine(models.Model):
+
+    slug = models.SlugField(editable=False)
+    name = models.CharField(max_length=100)
+    quantity = models.PositiveIntegerField(default=0)
+    expiration_date = models.DateField()
+    available = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def is_expired(self):
+        """
+        Check if the medicine has expired.
+        Returns:
+            bool: True if the medicine has expired, False otherwise.
+        """
+        return self.expiration_date.date() < datetime.now(pytz.utc).date()
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+    
+
+class Operation(models.Model):
+
+    slug = models.SlugField(editable=False)
+    patient = models.ForeignKey(Patient, on_delete=models.DO_NOTHING, related_name='patient_operations')
+    surgeon = models.ForeignKey(Doctor, on_delete=models.DO_NOTHING, related_name='surgeon_operations')
+    operation_date = models.DateField()
+    description = models.TextField()
+    is_performed = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Operation for  on {self.operation_date}"
+
