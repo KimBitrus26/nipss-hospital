@@ -5,9 +5,11 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 
 from nipps_hms.utils import generate_slug_code
-from nipps_hms.utils import validate_file
+from accounts.models import _generate_code
+
 User = get_user_model()
 
 PENDING = "Pending"
@@ -27,6 +29,8 @@ ATTENDED = "Attended"
 MALE = "Male"
 FEMALE = "Female"
 OTHER = "Other"
+PARTICIPANT = "Participant"
+ENROLLEE = "Enrollee"
 
 STATUS_CHOICES = ((PENDING, "Pending"), (APPROVED, "Approved"),
                       (DENIED, "Denied"), (INSUFFICIENT, "Insufficient"),)
@@ -46,6 +50,8 @@ GENDER_CHOICES = ((MALE, "Male"), (FEMALE, "Female"),
                       (OTHER, "Other"),)
 BOOKING_STATUS_CHOICES = ((PENDING, "Pending"), (APPROVED, "Approved"),
                       (ATTENDED, "Attended"),)
+
+PATIENT_TYPE_CHOICES = ((PARTICIPANT, "Participant"), (ENROLLEE, "Enrollee"),)
 
 
 class Doctor(models.Model):
@@ -111,7 +117,7 @@ class Pharmacist(models.Model):
         return f"Pharmacist {self.first_name}"
     
 
-class Accountant(models.Model):
+class AccountsRecords(models.Model):
     
     slug = models.SlugField(editable=False)
 
@@ -170,25 +176,17 @@ class LabTechnician(models.Model):
     def __str__(self):
         return f"Lab Technician {self.first_name}"
 
-
-class Patient(models.Model):
+class Spouse(models.Model):
     
     slug = models.SlugField(editable=False)
 
     first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150, null=True, blank=True)
     gender = models.CharField(
         max_length=20, choices=GENDER_CHOICES)
     date_of_birth = models.DateField()
-    age = models.CharField(
-        max_length=10)
-    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name="user_patient")
-    address = models.CharField(max_length=255)
-    city = models.CharField(max_length=256)
-    state = models.CharField(max_length=256)
-    country = models.CharField(max_length=256, default="Nigeria")
-
-    file_number = models.CharField(max_length=10)
+    
+    file_number = models.CharField(max_length=15, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -197,13 +195,72 @@ class Patient(models.Model):
         if not self.pk:
             slug_code = generate_slug_code()
             self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class PatientPrincipal(models.Model):
+    
+    slug = models.SlugField(editable=False)
+    patient_type = models.CharField(
+        max_length=20, choices=PATIENT_TYPE_CHOICES)
+    nhis_number = models.CharField(max_length=10)
+
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+    gender = models.CharField(
+        max_length=20, choices=GENDER_CHOICES)
+    date_of_birth = models.DateField()
+    file_number = models.CharField(max_length=15, null=True, blank=True)
+
+    spouse = models.OneToOneField(Spouse, on_delete=models.CASCADE, related_name="spouse_patient", null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+            
         super().save(*args, **kwargs)
 
     class Meta:
         ordering = ("-created_at", )
 
+    @property
+    def children(self):
+        children = self.patient_principal_children.all()
+        return children if children else None
+
     def __str__(self):
         return f" {self.first_name}"
+
+
+class Children(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150, null=True, blank=True)
+    gender = models.CharField(
+        max_length=20, choices=GENDER_CHOICES)
+    date_of_birth = models.DateField()
+    
+    file_number = models.CharField(max_length=15, null=True, blank=True)
+
+    patient_principal = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE, related_name="patient_principal_children")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+    
+        super().save(*args, **kwargs)
 
 
 class Nurse(models.Model):
@@ -520,7 +577,7 @@ class Cabin(models.Model):
 class Admission(models.Model):
 
     slug = models.SlugField(editable=False)
-    patient = models.ForeignKey(Patient, on_delete=models.CASCADE)
+    patient = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE)
     ward = models.ForeignKey(Ward, on_delete=models.CASCADE)
     bed = models.ForeignKey(Bed, on_delete=models.CASCADE, blank=True, null=True)
     cabin = models.ForeignKey(Cabin, on_delete=models.CASCADE, blank=True, null=True)
@@ -600,7 +657,7 @@ class Medicine(models.Model):
 class Operation(models.Model):
 
     slug = models.SlugField(editable=False)
-    patient = models.ForeignKey(Patient, on_delete=models.DO_NOTHING, related_name='patient_operations')
+    patient = models.ForeignKey(PatientPrincipal, on_delete=models.DO_NOTHING, related_name='patient_operations')
     surgeon = models.ForeignKey(Doctor, on_delete=models.DO_NOTHING, related_name='surgeon_operations')
     operation_date = models.DateField()
     description = models.TextField()
@@ -619,3 +676,59 @@ class Operation(models.Model):
     def __str__(self):
         return f"Operation for  on {self.operation_date}"
 
+
+class PrincipalContinuationSheet(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    description = models.TextField(null=True, blank=True)
+
+    patient_principal = models.OneToOneField(PatientPrincipal, on_delete=models.CASCADE, related_name='patient_principal_principal_continuation_sheet')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class SpouseContinuationSheet(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    description = models.TextField(null=True, blank=True)
+
+    spouse = models.OneToOneField(Spouse, on_delete=models.CASCADE, related_name='spouse_spouse_continuation_sheet')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class ChildContinuationSheet(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    description = models.TextField(null=True, blank=True)
+
+    child = models.OneToOneField(Children, on_delete=models.CASCADE, related_name='child_child_continuation_sheet')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)

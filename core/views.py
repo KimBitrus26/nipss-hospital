@@ -1,1031 +1,603 @@
-from django.shortcuts import render
+from rest_framework import status
+from django.db import transaction
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.generics import (CreateAPIView, RetrieveAPIView, ListAPIView, 
+                                     UpdateAPIView, DestroyAPIView,)
 
-from django.conf import settings
-from django.contrib import messages
-from django.contrib.auth import get_user_model, authenticate, login as auth_login, logout as auth_logout
-from django.http import HttpResponseRedirect, HttpResponse
-from django.urls import reverse
-from django.db.models import Q
+from .serializers import  (PatientPrincipalSerializer, DoctorProfileSerializer,
+                           PharmarcistProfileSerializer, 
+                           LabTechnicianProfileSerializer,
+                           NurseProfileSerializer,
+                           AccountantProfileSerializer,
+                           ChildrenSerializer, SpouseSerializer,
+                           PrincipalSerializer, ChildrenSingleSerializer,
+                           SpouseSingleSerializer, SearchPatientByNHISSerializer,
+                           SearchChildByFileNumberSerializer,
+                           SearchPatientByFileNumberSerializer,
+                           SearchSpouseByFileNumbererializer,
+                           PrincipalContinuationSheetSerializer,
+                           SpouseContinuationSheetSerializer,
+                           ChildContinuationSheetSerializer,
+                           
+                           )
+from nipps_hms.permission import (IsAuthenticatedNurse,
+                                  IsAuthenticatedDoctor,
+                                  IsAuthenticatedAccountsRecord,
+                                  IsAuthenticatedLabTechnician,
+                                  IsAuthenticatedPharmacist,
+                                        )
 
-from .decorators import (login_required, is_receptionist_required,
-                         is_doctor_required, is_patient_required, 
-                         is_pharmcist_required, is_lab_technician_required,
-                         )
-from accounts.utils import Helper, PayStackRequestHelper
-from accounts.models import OTPCode, _generate_code
-from .models import (Patient, Doctor, AdminReceptionist, Pharmacist, 
-                     LabTechnician, BookAppointment, PENDING, ATTENDED, APPROVED,
-                    PatientDiagnostic, Prescription, Transaction,
+from accounts.models import _generate_code
+from .models import (PatientPrincipal, Spouse, Children, Prescription,
+                     PrincipalContinuationSheet, ChildContinuationSheet,
+                     SpouseContinuationSheet, Doctor, Pharmacist, AccountsRecords,
+                     LabTechnician, Nurse,
+                     
                      )
 
-from accounts.models import User
 
-def index(request):
+class CreatePatientView(CreateAPIView):
 
-    return render(request, "nipps-templates/index.html")
+    permission_classes = (IsAuthenticatedAccountsRecord, )
+    serializer_class = PatientPrincipalSerializer
 
-def login_view(request):
-    
-    if request.method == 'POST':
-       
-        password = request.POST.get("password")
-        email = request.POST.get("email")
+    @transaction.atomic
+    def post(self, request,  format=None):
         
-        user = authenticate(request, username=email, password=password)
+        children = request.data.get("children")
+        if children and len(children) > 4:
+            return Response({"message": "Children cannot be more than 4."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid(raise_exception=True):
 
-        print("user====", user)
+            last_name = serializer.validated_data["last_name"]
+
+            patient = serializer.save()
+            if children:
+                for child in children if children else None:
+                    
+                    child["patient_principal"] = patient.id
+                    code_number = _generate_code()
+                    child["file_number"] = f"nipss-{code_number}"
+                    child["last_name"] = last_name
+                    
+                    child_serializer = ChildrenSerializer(data=child)
+                    child_serializer.is_valid(raise_exception=True)
+                    child_serializer.save()
+                
+            return Response({"message": "Patient file created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
         
-        if user and user.is_doctor:
-            auth_login(request, user)
-            return HttpResponseRedirect(reverse('doctor_dashboard'))
-        
-        elif user and user.is_phamacist:
-            auth_login(request, user)
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-        
-        elif user and user.is_lab_technician:
-            auth_login(request, user)
-            return HttpResponseRedirect(reverse('lab_technician_dashboard'))
-        
-        elif user and user.is_receptionist:
-            auth_login(request, user)
-            return HttpResponseRedirect(reverse('admin_receptionist'))
-        
-        elif user and user.is_patient:
-            auth_login(request, user)
-            return HttpResponseRedirect(reverse('patient_dashboard'))
-        else:
-            messages.info(request, 'Failed to log in. Invalid email or password')
-            return render(request, "nipps-templates/index.html")
+
+class CreateDoctorProfileView(CreateAPIView):
+
+    permission_classes = (IsAuthenticatedDoctor, )
+    serializer_class = DoctorProfileSerializer
+
+
+    def post(self, request,  format=None):
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
             
-    return render(request, "nipps-templates/index.html")
+            doctor = serializer.save(user=self.request.user, is_available=True)
+            doctor.user.is_profile_completed = True
+            doctor.user.save()
+            return Response({"message": "Doctor profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
 
-@is_receptionist_required
-def register_patient_view(request):
-   
-    if request.method == 'POST':
-        
-        email = request.POST.get("email")
-        phone_number = request.POST.get("phone_number")
 
-        if User.objects.filter(Q(email=email) | Q(phone_number=phone_number)).exists():
-            messages.info(request, f"Patient with this email '{email}' or '{phone_number}' already existed")
-            return HttpResponseRedirect(reverse('register_patient'))
+class GetDoctorDetailsView(APIView):
+    
+    permission_classes = (IsAuthenticatedDoctor, )
+    serializer_class = DoctorProfileSerializer
 
-        if phone_number[0] != "0":
-            phone_number = "0" + phone_number
-        print(phone_number)   
-        prepend = email.split("@")[0]
-        code = _generate_code()
-
-        password = f"{prepend}-{code}"
-
-        user = User.objects.create_user(
-            password=password,
-            email=email,
-            phone_number=phone_number,
-            country_code="234",
-            is_patient=True
-            )
-        print("password patient", password)
-        Helper.send_signup_email(email, password, user)
-        return HttpResponseRedirect(reverse('verify_phone'))
-
-    return render(request, "nipps-templates/register-patient.html",)
-
-@is_receptionist_required
-def verify_patient_phone_number(request):
-   
-    if request.method == 'POST':
-        
-        otp_code = request.POST.get("otp_code")
-        
+    def get(self, request, *args, **kwargs):
         try:
-            otp_obj = OTPCode.objects.get(code=otp_code)
-        except OTPCode.DoesNotExist:
-            otp_obj = None
-
-        if not otp_obj:
-            messages.info(request,"OTP code not found")
-            return HttpResponseRedirect(reverse('verify_phone'))
-        
-        if otp_obj.user.is_phone_verified:
-            messages.info(request, "Phone number verified already")
-            return HttpResponseRedirect(reverse('create_patient_file'))
-        
-        if otp_obj.is_used:
-            messages.info(request, "OTP Code already used")
-            return HttpResponseRedirect(reverse('verify_phone'))
-        
-        if otp_obj.expired():
-            messages.info(request, "OTP Code expired")
-            return HttpResponseRedirect(reverse('verify_phone'))
-        
-        otp_obj.otp_verified()
-        otp_obj.user.phone_verified()
-
-        return HttpResponseRedirect(reverse('create_patient_file'))
-
-    return render(request, "nipps-templates/verify-patient-phne.html",)
-
-@is_receptionist_required
-def resend_otp_view(request):
-   
-    if request.method == 'POST':
-        
-        phone_number = request.POST.get("phone_number")
-
-        try:
-            user = User.objects.get(phone_number=phone_number)
-        except User.DoesNotExist:
-            user = None
-        if not user:
-            messages.info(request, f"User not found with this phone number {phone_number}")
-            return HttpResponseRedirect(reverse('register_patient'))
-
-        otp = OTPCode.objects.create(user=user)
-        Helper.send_otp_sms(otp.code, user.country_code, 
-                                user.phone_number)
-
-
-        return HttpResponseRedirect(reverse('verify_phone'))
-
-    return render(request, "nipps-templates/resend_code-phone.html",)
-
-@is_receptionist_required
-def create_patient_file_view(request):
-
-    if request.method == 'POST':
-        
-        email = request.POST.get("email")
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        gender = request.POST.get("gender")
-        date_of_birth = request.POST.get("date_of_birth")
-        address = request.POST.get("address")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        country = request.POST.get("country")
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            messages.info(request, f"User not found with this email {email}")
-            return HttpResponseRedirect(reverse('create_patient_file'))
-        
-        if Patient.objects.filter(user=user).exists():
-            messages.info(request, f"Patient already existed. Please ask for Patient file number and attend to Patient")
-            return HttpResponseRedirect(reverse('create_patient_file'))
-
-        if not user.is_patient:
-            messages.info(request, f"User does not has a Patient account. Please contact Admin")
-            return HttpResponseRedirect(reverse('register_patient'))
-
-        from datetime import date, datetime
-        date_object = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
-        year = date_object.year
-
-        age = date.today().year - year
-        participant_age = age if age >= 1 else 1
-        code_number = _generate_code()
-        file_number = f"NIPSS-{code_number}"
-
-        Patient.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            gender=gender,
-            date_of_birth=date_of_birth,
-            age=participant_age,
-            address=address,
-            city=city,
-            state=state,
-            country=country,
-            user=user,
-            file_number=file_number
-        )
-        country_code = user.country_code
-        phone_number = user.phone_number
-        
-        Helper.send_patient_file_number_sms(file_number, country_code, phone_number)
-        Helper.send_patient_file_number_email(email, file_number, last_name)
-        
-        messages.success(request, f"Patient file created successfully. File number has been sent to Patient Phone number and email")
-        return HttpResponseRedirect(reverse('admin_receptionist'))
-    
-    return render(request, "nipps-templates/create-patient-file.html",)
-
-@login_required
-def logout_view(request):
-
-    auth_logout(request)
-    return HttpResponseRedirect(reverse('home'))
-
-@login_required
-def admin_receptionist(request):
-
-    return render(request, "nipps-templates/admin-receptionist.html")
-
-@login_required
-def doctor_dashboard(request):
-
-    return render(request, "nipps-templates/doctor-dashboard.html")
-
-@login_required
-def pharmacy_dashboard(request):
-
-    return render(request, "nipps-templates/pharmacy-dashboard.html")
-
-@login_required
-def lab_technician_dashboard(request):
-
-    return render(request, "nipps-templates/lab-technician-dashboard.html")
-
-@login_required
-def patient_dashboard(request):
-
-    return render(request, "nipps-templates/patient-dashboard.html")
-
-@is_receptionist_required
-def get_patients_lists(request):
-
-    patients = Patient.objects.all()
-    ctx = {"patients": patients}
-
-    return render(request, "nipps-templates/patient-list.html", ctx)
-    
-
-@is_receptionist_required
-def get_patient(request, slug):
-
-
-    try:
-        patient = Patient.objects.get(slug=slug)
-    except Patient.DoesNotExist:
-        messages.info(request, f"Patient not found")
-        return HttpResponseRedirect(reverse('admin_receptionist'))
-    
-    ctx = {"patient": patient}
-
-    return render(request, "nipps-templates/get-patient.html", ctx)
-    
-
-@is_receptionist_required
-def get_doctor_lists(request):   
-
-    doctors = Doctor.objects.all()
-    ctx = {"doctors": doctors}
-
-    return render(request, "nipps-templates/doctor-list.html", ctx)
-   
-
-@is_receptionist_required
-def get_doctor(request, slug):
-
-    try:
-        doctor = Doctor.objects.get(slug=slug)
-    except Doctor.DoesNotExist:
-        messages.info(request, f"Doctor not found")
-        return HttpResponseRedirect(reverse('admin_receptionist'))
-    
-    ctx = {"doctor": doctor}
-
-    return render(request, "nipps-templates/get-doctor.html", ctx)
-
-@is_receptionist_required
-def get_receptionist_profile(request):
-
-    user = request.user
-
-    try:
-        receptionist = AdminReceptionist.objects.get(user=user)
-    except Doctor.DoesNotExist:
-        messages.info(request, f"Receptionist not found")
-        return HttpResponseRedirect(reverse('admin_receptionist'))
-    
-    ctx = {"receptionist": receptionist}
-
-    return render(request, "nipps-templates/receptionist-profile.html", ctx)
-
-@is_doctor_required
-def get_doctor_profile(request):
-
-    user = request.user
-
-    try:
-        doctor = Doctor.objects.get(user=user)
-    except Doctor.DoesNotExist:
-        messages.info(request, f"Doctor not found")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-    
-    ctx = {"doctor": doctor}
-
-    return render(request, "nipps-templates/doctor-profile.html", ctx)
-
-@is_patient_required
-def get_patient_profile(request):
-
-    user = request.user
-
-    try:
-        patient = Patient.objects.get(user=user)
-    except Patient.DoesNotExist:
-        messages.info(request, f"Patient not found")
-        return HttpResponseRedirect(reverse('patient_dashboard'))
-    
-    ctx = {"patient": patient}
-
-    return render(request, "nipps-templates/patient-profile.html", ctx)
-
-@is_pharmcist_required
-def get_pharmacist_profile(request):
-
-    user = request.user
-
-    try:
-        pharmacist = Pharmacist.objects.get(user=user)
-    except Pharmacist.DoesNotExist:
-        messages.info(request, f"Pharmacist not found")
-        return HttpResponseRedirect(reverse('pharmacist_dashboard'))
-    
-    ctx = {"pharmacist": pharmacist}
-
-    return render(request, "nipps-templates/pharmacist-profile.html", ctx)
-
-
-@is_lab_technician_required
-def get_lab_profile(request):
-
-    user = request.user
-
-    try:
-        lab = LabTechnician.objects.get(user=user)
-    except LabTechnician.DoesNotExist:
-        messages.info(request, f"Lab technician not found")
-        return HttpResponseRedirect(reverse('lab_dashboard'))
-    
-    ctx = {"lab": lab}
-
-    return render(request, "nipps-templates/lab-profile.html", ctx)
-    
-
-@is_receptionist_required
-def receptionist_complete_profile_view(request):
-
-    if request.method == 'POST':
-        
-        user = request.user
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        gender = request.POST.get("gender")
-        address = request.POST.get("address")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        country = request.POST.get("country")
-
-        if AdminReceptionist.objects.filter(user=user).exists():
-            messages.info(request, f"Admin/Receptionist profile already completed.")
-            return HttpResponseRedirect(reverse('admin_receptionist'))
-
-        AdminReceptionist.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            gender=gender,
-            address=address,
-            city=city,
-            state=state,
-            country=country,
-            user=user
-        )
-        
-        messages.success(request, f"Profile completed successfully.")
-        return HttpResponseRedirect(reverse('admin_receptionist'))
-    
-    return render(request, "nipps-templates/receptionist-complete-profile.html")
-
-
-@is_doctor_required
-def doctor_complete_profile_view(request):
-
-    if request.method == 'POST':
-        
-        user = request.user
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        gender = request.POST.get("gender")
-        specialty = request.POST.get("specialty")
-        address = request.POST.get("address")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        country = request.POST.get("country")
-
-        if Doctor.objects.filter(user=user).exists():
-            messages.info(request, f"Doctor profile already completed.")
-            return HttpResponseRedirect(reverse('doctor_dashboard'))
-
-        Doctor.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            gender=gender,
-            address=address,
-            city=city,
-            state=state,
-            country=country,
-            specialty=specialty,
-            user=user,
-            is_available=True
-        )
-        
-        messages.success(request, f"Profile completed successfully.")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-    
-    return render(request, "nipps-templates/doctor-complete-profile.html")
-
-
-@is_pharmcist_required
-def pharmacy_complete_profile_view(request):
-
-    if request.method == 'POST':
-        
-        user = request.user
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        gender = request.POST.get("gender")
-        address = request.POST.get("address")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        country = request.POST.get("country")
-
-        if Pharmacist.objects.filter(user=user).exists():
-            messages.info(request, f"Pharmacist profile already completed.")
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-
-        Pharmacist.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            gender=gender,
-            address=address,
-            city=city,
-            state=state,
-            country=country,
-            user=user
-        )
-        
-        messages.success(request, f"Profile completed successfully.")
-        return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-    
-    return render(request, "nipps-templates/pharmacist-complete-profile.html")
-
-@is_lab_technician_required
-def lab_technician_complete_profile_view(request):
-
-    if request.method == 'POST':
-        
-        user = request.user
-        first_name = request.POST.get("first_name")
-        last_name = request.POST.get("last_name")
-        gender = request.POST.get("gender")
-        address = request.POST.get("address")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        country = request.POST.get("country")
-
-        if LabTechnician.objects.filter(user=user).exists():
-            messages.info(request, f"Lab Technician profile already completed.")
-            return HttpResponseRedirect(reverse('lab_technician_dashboard'))
-
-        LabTechnician.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            gender=gender,
-            address=address,
-            city=city,
-            state=state,
-            country=country,
-            user=user
-        )
-        
-        messages.success(request, f"Profile completed successfully.")
-        return HttpResponseRedirect(reverse('lab_technician_dashboard'))
-    
-    return render(request, "nipps-templates/lab-complete-profile.html")
-
-@is_patient_required
-def patient_book_appointment_view(request, slug):
-
-    if request.method == 'POST':
-        
-        user = request.user
-        description = request.POST.get("description")
-        appointment_date = request.POST.get("appointment_date")
-
-        if BookAppointment.objects.filter(Q(status=PENDING) | Q(status=APPROVED), patient=user).exists():
-            messages.info(request, f"You already have a pending appointment")
-            return HttpResponseRedirect(reverse('patient_dashboard'))
-        
-        try:
-            doctor = Doctor.objects.get(slug=slug)
+            doctor = Doctor.objects.get(user=self.request.user)
         except Doctor.DoesNotExist:
-            messages.info(request, f"Doctor not found")
-            return HttpResponseRedirect(reverse('patient_appoint'))
-        print("descr", description)
-        print("descr", appointment_date)
-        BookAppointment.objects.create(
-            patient = user,
-            doctor = doctor.user,
-            appointment_date = appointment_date,
-            description = description,
-            is_booked = True
-        )
-        messages.success(request, f"Appointment booked successfully. Doctor has received and review your request")
-        return HttpResponseRedirect(reverse('patient_dashboard'))
-    
-    return render(request, "nipps-templates/patient-book-appointment.html")
-
-@is_patient_required
-def patient_appoint_view(request):
-
-    doctors = Doctor.objects.filter(is_available=True)
-    ctx = {
-        "doctors": doctors
-     }
-    
-    return render(request, "nipps-templates/patient-appointment.html", ctx)
-
-
-@is_patient_required
-def get_patient_appointments_view(request):
-
-    user = request.user
-    appointments = BookAppointment.objects.filter(patient=user)
-    ctx = {
-        "appointments": appointments
-     }
-    
-    return render(request, "nipps-templates/get-patient-appointment.html", ctx)
-
-@is_receptionist_required
-def appointments_receptionist_view(request):
-
-    ctx = {}
-    ctx_array = []
-    appointments = BookAppointment.objects.all()
-    for appoint in appointments:
-        try:
-            doctor = Doctor.objects.get(user=appoint.doctor)
-        except Doctor.DoesNotExist:
-            pass
-        try:
-            patient = Patient.objects.get(user=appoint.patient)
-        except Patient.DoesNotExist:
-            pass
-
-        ctx["doctor_first_name"] = doctor.first_name
-        ctx["doctor_last_name"] = doctor.first_name
-        ctx["doctor_email"] = doctor.user.email
-        ctx["patient_first_name"] = patient.first_name
-        ctx["patient_last_name"] = patient.last_name
-        ctx["patient_email"] = patient.user.email
-        ctx["patient_file_number"] = patient.file_number
-        ctx["appointment_date"] = appoint.appointment_date
-        ctx["appointment_status"] = appoint.status
-        ctx_array.append(ctx)
-    
-    response_ctx = {
-        "appointments": ctx_array
-    }
-    return render(request, "nipps-templates/appointments-receptionist.html", response_ctx)
-
-@is_doctor_required
-def appointments_request_view(request):
-
-    ctx = {}
-    ctx_array = []
-    user = request.user 
-    appointments = BookAppointment.objects.filter(doctor=user, status=PENDING)
-    for appoint in appointments:
-        try:
-            patient = Patient.objects.get(user=appoint.patient)
-        except Patient.DoesNotExist:
-            pass
-
-        ctx["patient_first_name"] = patient.first_name
-        ctx["patient_last_name"] = patient.last_name
-        ctx["patient_email"] = patient.user.email
-        ctx["patient_file_number"] = patient.file_number
-        ctx["appointment_date"] = appoint.appointment_date
-        ctx["appointment_status"] = appoint.status
-        ctx["id"] = appoint.id # change later to slug
-        ctx_array.append(ctx)
-    
-    response_ctx = {
-        "appointments": ctx_array
-    }
-    return render(request, "nipps-templates/appointments-request.html", response_ctx)
-
-
-@is_doctor_required
-def appointments_approved_view(request):
-
-    ctx = {}
-    ctx_array = []
-    user = request.user
-    appointments = BookAppointment.objects.filter(doctor=user, status=APPROVED)
-    for appoint in appointments:
-        try:
-            patient = Patient.objects.get(user=appoint.patient)
-        except Patient.DoesNotExist:
-            pass
-
-        ctx["patient_first_name"] = patient.first_name
-        ctx["patient_last_name"] = patient.last_name
-        ctx["patient_email"] = patient.user.email
-        ctx["patient_file_number"] = patient.file_number
-        ctx["appointment_date"] = appoint.appointment_date
-        ctx["appointment_status"] = appoint.status
-        ctx_array.append(ctx)
-    
-    response_ctx = {
-        "appointments": ctx_array
-        
-    }
-    return render(request, "nipps-templates/appointments-approved.html", response_ctx)
-
-
-@is_doctor_required
-def doctor_approve_appointment_view(request, pk):
-
-    try:
-        appointment = BookAppointment.objects.get(id=pk)
-    except BookAppointment.DoesNotExist:
-        messages.info(request, f"Appointment not found")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-
-    if appointment.status == APPROVED or appointment.status == ATTENDED:
-        messages.info(request, f"Appointment already approved or attended")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-    
-    appointment.status = APPROVED
-    appointment.save()
-    
-    messages.success(request, f"Appointment approved successfully")
-    return HttpResponseRedirect(reverse('doctor_dashboard'))
-
-@is_doctor_required
-def doctor_attend_patient_view(request):
+            return Response({"message": "Doctor not found"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(doctor)
+        return Response({"message": "Retrieved doctor successfully", "data": serializer.data}, status=status.HTTP_200_OK)
      
-    if request.method == 'POST':
+
+class CreateNurseProfileView(CreateAPIView):
+
+    permission_classes = (IsAuthenticatedNurse, )
+    serializer_class = NurseProfileSerializer
+
+
+    def post(self, request,  format=None):
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+            
+            nurse = serializer.save(user=self.request.user)
+            nurse.user.is_profile_completed = True
+            nurse.user.save()
+            return Response({"message": "Nurse profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetNurseDetailsView(APIView):
+
+    permission_classes = (IsAuthenticatedNurse, )
+    serializer_class = NurseProfileSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            nurse = Nurse.objects.get(user=self.request.user)
+        except Nurse.DoesNotExist:
+            return Response({"message": "Nurse not found"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(nurse)
+        return Response({"message": "Retrieved nurse successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+     
+
+class CreatePharmacistProfileView(CreateAPIView):
+
+    permission_classes = (IsAuthenticatedPharmacist, )
+    serializer_class = PharmarcistProfileSerializer
+
+
+    def post(self, request,  format=None):
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+            
+            pharmacist = serializer.save(user=self.request.user)
+            pharmacist.user.is_profile_completed = True
+            pharmacist.user.save()
+            return Response({"message": "Pharmacist profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
         
-        file_number = request.POST.get("file_number")
+
+class GetPharmacistDetailsView(APIView):
+    
+    permission_classes = (IsAuthenticatedPharmacist, )
+    serializer_class = PharmarcistProfileSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            pharmacist = Pharmacist.objects.get(user=self.request.user)
+        except Pharmacist.DoesNotExist:
+            return Response({"message": "Pharmacist not found"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(pharmacist)
+        return Response({"message": "Retrieved pharmacist successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+     
+
+class CreateAccountantProfileView(CreateAPIView):
+
+    permission_classes = (IsAuthenticatedAccountsRecord, )
+    serializer_class = AccountantProfileSerializer
+
+    def post(self, request,  format=None):
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+            
+            accounts = serializer.save(user=self.request.user)
+            accounts.user.is_profile_completed = True
+            accounts.user.save()
+            return Response({"message": "Accounts/records profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class GetAccountsDetailsView(APIView):
+   
+    permission_classes = (IsAuthenticatedAccountsRecord, )
+    serializer_class = AccountantProfileSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            account = AccountsRecords.objects.get(user=self.request.user)
+        except AccountsRecords.DoesNotExist:
+            return Response({"message": "Accounts not found"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(account)
+        return Response({"message": "Retrieved accounts/records successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+     
+
+class CreateLabTechnicianProfileView(CreateAPIView):
+
+    permission_classes = (IsAuthenticatedLabTechnician, )
+    serializer_class = LabTechnicianProfileSerializer
+
+
+    def post(self, request,  format=None):
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+            
+            lab = serializer.save(user=self.request.user)
+            lab.user.is_profile_completed = True
+            lab.user.save()
+     
+            return Response({"message": "Lab Technician profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+   
+        
+class GetLabDetailsView(APIView):
+    
+    permission_classes = (IsAuthenticatedLabTechnician, )
+    serializer_class = LabTechnicianProfileSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            lab = LabTechnician.objects.get(user=self.request.user)
+        except LabTechnician.DoesNotExist:
+            return Response({"message": "Lab not found"}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(lab)
+        return Response({"message": "Retrieved lab successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+     
+
+class ListPatientsView(APIView):
+    """
+    An endpoint to list patients
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = PatientPrincipalSerializer
+
+    def get(self, request, *args, **kwargs):
+        patients = PatientPrincipal.objects.all()
+        if patients:
+            serializer = self.serializer_class(patients, many=True)
+            return Response({"message": "Retrieved patients successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetPatientView(APIView):
+    """
+    An endpoint to get specific patient
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = PrincipalSerializer
+
+    def get(self, request, file_number, *args, **kwargs):
+
+        try:
+            patient = PatientPrincipal.objects.get(file_number=file_number)
+        except PatientPrincipal.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+        if patient:
+            serializer = self.serializer_class(patient)
+            return Response({"message": "Retrieved patient successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetSpouseView(APIView):
+    """
+    An endpoint to get specific spouse
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = SpouseSingleSerializer
+
+    def get(self, request, file_number, *args, **kwargs):
+
+        try:
+            spouse = Spouse.objects.get(file_number=file_number)
+        except Spouse.DoesNotExist:
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+        if spouse:
+            serializer = self.serializer_class(spouse)
+            return Response({"message": "Retrieved spouse successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetChildView(APIView):
+    """
+    An endpoint to get specific child
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = ChildrenSingleSerializer
+
+    def get(self, request, file_number, *args, **kwargs):
+
+        try:
+            child = Children.objects.get(file_number=file_number)
+        except Children.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+        if child:
+            serializer = self.serializer_class(child)
+            return Response({"message": "Retrieved child successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No child available"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class SearchPrincipalPatientByNHISView(APIView):
+    """
+    An endpoint to search principal patient by NHIS number
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = SearchPatientByNHISSerializer
+
+    def post(self, request, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+
+            nhis_number = serializer.validated_data["nhis_number"]
+
+            try:
+                patient = PatientPrincipal.objects.get(nhis_number=nhis_number)
+            except PatientPrincipal.DoesNotExist:
+                return Response({"message": "No Patient found"}, status=status.HTTP_404_NOT_FOUND)
+            if patient:
+                serializer = PatientPrincipalSerializer(patient)
+                return Response({"message": "Retrieved patient successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class SearchPrincipalPatientByFileNumberView(APIView):
+    """
+    An endpoint to search principal patient by file number
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = SearchPatientByFileNumberSerializer
+
+    def post(self, request, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+
+            file_number = serializer.validated_data["file_number"]
+
+            try:
+                patient = PatientPrincipal.objects.get(file_number=file_number)
+            except PatientPrincipal.DoesNotExist:
+                return Response({"message": "No Patient found"}, status=status.HTTP_404_NOT_FOUND)
+            if patient:
+                serializer = PatientPrincipalSerializer(patient)
+                return Response({"message": "Retrieved patient successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class SearchChildByFileNumberView(APIView):
+    """
+    An endpoint to search child by file number
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = SearchChildByFileNumberSerializer
+
+    def post(self, request, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+
+            file_number = serializer.validated_data["file_number"]
+
+            try:
+                child = Children.objects.get(file_number=file_number)
+            except Children.DoesNotExist:
+                return Response({"message": "No Child found"}, status=status.HTTP_404_NOT_FOUND)
+            if child:
+                serializer = ChildrenSerializer(child)
+                return Response({"message": "Retrieved child successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+
+class SearchSpouseByFileNumberView(APIView):
+    """
+    An endpoint to search spouse by file number
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = SearchSpouseByFileNumbererializer
+
+    def post(self, request, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+
+            file_number = serializer.validated_data["file_number"]
+
+            try:
+                spouse = Spouse.objects.get(file_number=file_number)
+            except Spouse.DoesNotExist:
+                return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+            if spouse:
+                serializer = SpouseSerializer(spouse)
+                return Response({"message": "Retrieved spouse successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetPrincipalContinuationSheetView(APIView):
+    """
+    An endpoint to get patient principal continuation sheet
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = PrincipalContinuationSheetSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            patient = PatientPrincipal.objects.get(slug=slug)
+        except PatientPrincipal.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
         
         try:
-            patient = Patient.objects.get(file_number=file_number)
-        except Patient.DoesNotExist:
-            messages.success(request, f"Patient not found")
-            return HttpResponseRedirect(reverse('doctor_attend_patient'))
-        messages.success(request, f"found")
-        return HttpResponseRedirect(reverse('doctor_get_patient', kwargs={"slug": patient.slug }))
-  
-    return render(request, "nipps-templates/doctor-attend-patient.html")
-
-@is_doctor_required
-def doctor_get_patient_view(request, slug):
-       
-    try:
-        patient = Patient.objects.get(slug=slug)
-    except Patient.DoesNotExist:
-        messages.success(request, f"Patient not found")
-        return HttpResponseRedirect(reverse('doctor_attend_patient'))
+            patient_sheet = PrincipalContinuationSheet.objects.get(patient_principal=patient)
+        except PrincipalContinuationSheet.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+        if patient_sheet:
+            serializer = self.serializer_class(patient_sheet)
+            return Response({"message": "Retrieved patient continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No patient available"}, status=status.HTTP_404_NOT_FOUND)
     
-    ctx = {
-        "patient": patient
-    }
-    
-    return render(request, "nipps-templates/doctor-get-patient.html", ctx)
 
-@is_doctor_required
-def doctor_request_patient_test_view(request, slug):
 
+class GetSpouseContinuationSheetView(APIView):
+    """
+    An endpoint to get spouse continuation sheet
+    """
     
-    if request.method == 'POST':
-        user = request.user
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = SpouseContinuationSheetSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
         try:
-            patient = Patient.objects.get(slug=slug)
-        except Patient.DoesNotExist:
-            messages.info(request, f"Patient not found")
-            return HttpResponseRedirect(reverse('doctor_get_patient'))
-        
-        if PatientDiagnostic.objects.filter(patient=patient.user, lab_test_performed=False).exists():
-            messages.info(request, f"Request to test this patient already existed")
-            return HttpResponseRedirect(reverse('doctor_dashboard'))
-        
-        description = request.POST.get("description")
-    
-        PatientDiagnostic.objects.create(
-            patient = patient.user,
-            prescribed_by = user,
-            description = description,
-            lab_test_requested = True
-        )
-        messages.success(request, f"Request for test successfully send to Lab")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-    
-    return render(request, "nipps-templates/doctor-request-patient-test.html")
-
-
-@is_doctor_required
-def doctor_patient_prescription_view(request, slug):
-    
-    if request.method == 'POST':
-        user = request.user
-        try:
-            patient = Patient.objects.get(slug=slug)
-        except Patient.DoesNotExist:
-            messages.info(request, f"Patient not found")
-            return HttpResponseRedirect(reverse('doctor_get_patient'))
-        
-        if PatientDiagnostic.objects.filter(patient=patient.user, lab_test_requested=True, lab_test_performed=False).exists():
-            messages.info(request, f"Result for this Patient test not yet out")
-            return HttpResponseRedirect(reverse('doctor_patient_prescription', kwargs={"slug": patient.slug}))
-        
-        description = request.POST.get("description")
-        
-        patient_diag = PatientDiagnostic.objects.create(
-            patient = patient.user,
-            prescribed_by = user,
-            description = description,
-        )
-        Prescription.objects.create(
-            diagnostic_report = patient_diag,
-            prescription = description,
-            is_prescribed = True
-        )
-    
-        messages.success(request, f"Prescription successfully sent to Pharmacy")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-    
-    return render(request, "nipps-templates/doctor-patient-prescription.html")
-
-@is_doctor_required
-def doctor_get_patient_results_view(request, slug):
-    
-    user = request.user
-    try:
-        patient = Patient.objects.get(slug=slug)
-    except Patient.DoesNotExist:
-        messages.info(request, f"Patient not found")
-        return HttpResponseRedirect(reverse('doctor_get_patient'))
-        
-    patient_diagnostics = PatientDiagnostic.objects.filter(prescribed_by=user, patient=patient.user, lab_test_requested=True)
-    ctx = {
-        "patient_diagnostics": patient_diagnostics
-    }
-    return render(request, "nipps-templates/doctor_get_patient_results.html", ctx)
-
-
-@is_doctor_required
-def doctor_patient_test_prescription_view(request, pk):
-    
-    if request.method == 'POST':
-       
-        try:
-            patient_diag = PatientDiagnostic.objects.get(id=pk)
-        except PatientDiagnostic.DoesNotExist:
-            messages.info(request, f"PatientDiagnostic not found")
-            return HttpResponseRedirect(reverse('doctor_dashboard'))
-        
-        if not patient_diag.lab_test_result:
-            messages.info(request, f"Patient has been requested for test and result not out yet")
-            return HttpResponseRedirect(reverse('doctor_dashboard'))
-        
-        
-        if Prescription.objects.filter(diagnostic_report=patient_diag,).exists():
-            messages.info(request, f"Patient prescription already existed")
-            return HttpResponseRedirect(reverse('doctor_dashboard'))
-        
-        description = request.POST.get("description")
-        
-        Prescription.objects.create(
-            diagnostic_report = patient_diag,
-            prescription = description,
-            is_prescribed = True
-        )
-    
-        messages.success(request, f"Prescription successfully sent to Pharmacy")
-        return HttpResponseRedirect(reverse('doctor_dashboard'))
-    
-    return render(request, "nipps-templates/doctor-patient-test-prescription.html")
-
-
-@is_doctor_required
-def doctor_update_availabilty_view(request):
-        
-    user = request.user
-
-    try:
-        doctor = Doctor.objects.get(user=user)
-    except Doctor.DoesNotExist:
-        messages.info(request, f"Doctor not found")
-        return HttpResponseRedirect(reverse('doctor_profile'))
-    
-    if doctor.is_available:
-        doctor.is_available = False
-    else:
-        doctor.is_available = True
-
-    doctor.save()
-        
-    messages.info(request, f"Availability updated successfully")
-    return HttpResponseRedirect(reverse('doctor_profile'))
-
-
-@is_lab_technician_required
-def patient_to_be_tested_view(request):
-        
-    patient_diags = PatientDiagnostic.objects.filter(lab_test_requested=True)
-    ctx = {
-        "patient_diags": patient_diags
-    }       
-    
-    return render(request, "nipps-templates/patient-to-be-tested.html", ctx)
-
-
-@is_lab_technician_required
-def patient_tested_upload_result_view(request, pk):
-
-    if request.method == 'POST':    
-        try:
-            patient_diag = PatientDiagnostic.objects.get(id=pk)
-        except PatientDiagnostic.DoesNotExist:
-            messages.info(request, f"PatientDiagnostic not found")
-            return HttpResponseRedirect(reverse('patient_to_be_tested'))
-        
-        description = request.POST.get("description")
-        patient_diag.lab_test_result = description
-        patient_diag.lab_test_performed = True
-        patient_diag.save()
-
-        messages.success(request, f"Test result updated successfully")
-        return HttpResponseRedirect(reverse('lab_technician_dashboard'))
-          
-    return render(request, "nipps-templates/patient-tested-upload.html")
-
-
-@is_lab_technician_required
-def patients_tested_results_view(request):
-        
-    patient_diags = PatientDiagnostic.objects.filter(lab_test_performed=True)
-    ctx = {
-        "patient_diags": patient_diags
-    }       
-    
-    return render(request, "nipps-templates/patient-tested-results.html", ctx)
-
-@is_pharmcist_required
-def pharmacist_search_patient_view(request):
-
-    if request.method == 'POST':
-        
-        file_number = request.POST.get("file_number")
+            spouse = Spouse.objects.get(slug=slug)
+        except Spouse.DoesNotExist:
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
         
         try:
-            patient = Patient.objects.get(file_number=file_number)
-        except Patient.DoesNotExist:
-            messages.success(request, f"Patient not found")
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-       
-        return HttpResponseRedirect(reverse('pharmacist_get_patient', kwargs={"slug": patient.slug }))
-  
-        
-    return render(request, "nipps-templates/pharmacist-search-patient.html")
-
-
-@is_pharmcist_required
-def pharmacist_get_patient_view(request, slug):
-       
-    try:
-        patient = Patient.objects.get(slug=slug)
-    except Patient.DoesNotExist:
-        messages.success(request, f"Patient not found")
-        return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-    patient_diags = PatientDiagnostic.objects.filter(patient=patient.user)
-
-    prescription_object = {}
-    for _ in patient_diags:
-        prescriptions = Prescription.objects.filter(diagnostic_report__patient=patient.user)
-        for i in prescriptions:
-            prescription_object['prescription'] = i.prescription
-            prescription_object["is_prescribed"] = i.is_prescribed
-            prescription_object["prescription_date"] = i.prescription_date
-
-    ctx = {
-        "patient": patient,
-        "prescription_data": prescription_object
-    }
+            spouse_sheet = SpouseContinuationSheet.objects.get(spouse=spouse)
+        except SpouseContinuationSheet.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+        if spouse_sheet:
+            serializer = self.serializer_class(spouse_sheet)
+            return Response({"message": "Retrieved spouse continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No spouse available"}, status=status.HTTP_404_NOT_FOUND)
     
-    return render(request, "nipps-templates/pharmacist-get-patient.html", ctx)
-
-@is_pharmcist_required
-def pharmacist_make_payment_view(request, slug):
-
-    if request.method == 'POST':
-       
-        try:
-            patient = Patient.objects.get(slug=slug)
-        except Patient.DoesNotExist:
-            messages.success(request, f"Patient not found")
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-        
-        user_amount = int(request.POST.get("amount"))
-        amount = user_amount * 100
-        
-        reference = Helper.reference_generator()
-        email = patient.user.email 
-        first_name = patient.first_name 
-        last_name = patient.last_name
-        country_code = patient.user.country_code
-        phone_number = patient.user.phone_number
-        patient_user = patient.user
-
-        res = PayStackRequestHelper.send_payment(patient_user, request, reference, email, amount, first_name, last_name)
-        if res is not None:
-            payment_link = res["data"]["authorization_url"]
-            print("pay linki   ", payment_link)
-            Helper.send_patient_payment_link_email(
-            email, user_amount, payment_link
-            )
-            Helper.send_patient_payment_link_sms(
-                user_amount, payment_link, 
-                country_code, phone_number)
-            messages.success(request, f"Payment link succesfully sent to Patient phone number and email")
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-        messages.info(request, f"Something went wrong. Please contact support")
-        return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-    return render(request, "nipps-templates/pharmacist-make-payment.html")
-
-@is_pharmcist_required
-def verify_payment_view(request, **kwargs):
-    import requests
-    from django.shortcuts import get_object_or_404
-
-    transaction = get_object_or_404(Transaction, ref=kwargs["ref"])
-    if transaction.verified:
-        messages.info(request, f"Transaction already verified")
-        return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-    res = requests.get(
-        f"{PayStackRequestHelper.VERIFY_TRANSACTION_URL}{transaction.ref}",
-        headers=PayStackRequestHelper.AUTHORIZED_HEADER
-    ).json()
-    if res["status"]:
-        # Verify currency type, actual amount paid and status
-        if res["data"]["status"] == "success" and res["data"]["currency"] == "NGN" \
-            and res["data"]["amount"] >= transaction.amount:
-            transaction.verified = True
-            transaction.save()
-
-            messages.info(request, f"Payment verified successfully")
-            return HttpResponseRedirect(reverse('home'))
-
-        messages.info(request, f"Somthin went wrong. Contact Admin")
-        return HttpResponseRedirect(reverse('home'))
-    messages.info(request, f"Somthin went wrong. Contact Admin")
-    return HttpResponseRedirect(reverse('home'))
-
-@is_pharmcist_required
-def pharmacist_check_patient_payment_view(request):
-
-    if request.method == 'POST':
-        
-        file_number = request.POST.get("file_number")
-        
-        try:
-            patient = Patient.objects.get(file_number=file_number)
-        except Patient.DoesNotExist:
-            messages.success(request, f"Patient not found")
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-        
-        try:
-            transaction = Transaction.objects.get(user=patient.user)
-        except Transaction.DoesNotExist:
-            messages.success(request, f"Transaction not found")
-            return HttpResponseRedirect(reverse('pharmacy_dashboard'))
-       
-        return HttpResponseRedirect(reverse('pharmacist_confirm_patient_payment', kwargs={"ref": transaction.ref}))
-       
-        
-    return render(request, "nipps-templates/pharmacist-check-patient-payment.html")
 
 
-@is_pharmcist_required
-def pharmacist_confirm_patient_payment_view(request, ref):
-        
-    try:
-        transaction = Transaction.objects.get(ref=ref)
-    except Transaction.DoesNotExist:
-        messages.success(request, f"Transaction not found")
-        return HttpResponseRedirect(reverse('pharmacy_dashboard'))
+class GetChildContinuationSheetView(APIView):
+    """
+    An endpoint to get child continuation sheet
+    """
     
-    ctx = {
-        "transaction": transaction,
-        "amount": transaction.amount / 100
-    }
-    return render(request, "nipps-templates/pharmacist-confirm-patient-payment.html", ctx)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    serializer_class = ChildContinuationSheetSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            child = Children.objects.get(slug=slug)
+        except Children.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            child_sheet = ChildContinuationSheet.objects.get(child=child)
+        except ChildContinuationSheet.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+        if child_sheet:
+            serializer = self.serializer_class(child_sheet)
+            return Response({"message": "Retrieved child continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No child available"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class UpdatePrincipalContinuationSheetView(APIView):
+    """
+    An endpoint to update principal continuation sheet
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = PrincipalContinuationSheetSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+
+            description = serializer.validated_data["description"]
+
+            try:
+                patient_sheet = PrincipalContinuationSheet.objects.get(slug=slug)
+            except PrincipalContinuationSheet.DoesNotExist:
+                return Response({"message": "No patient sheet found"}, status=status.HTTP_404_NOT_FOUND)
+            if patient_sheet:
+
+                from datetime import datetime
+                date_string = patient_sheet.updated_at
+                datetime_object = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+                # Format the datetime object as required
+                formatted_date = datetime_object.strftime("%d-%m-%Y")
+                patient_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n"
+                patient_sheet.save()
+                serializer = self.serializer_class(patient_sheet)
+                return Response({"message": "Updated patient continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No patient available"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class UpdateSpouseContinuationSheetView(APIView):
+    """
+    An endpoint to update spouse continuation sheet
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = SpouseContinuationSheetSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+
+            description = serializer.validated_data["description"]
+
+            try:
+                spouse_sheet = SpouseContinuationSheet.objects.get(slug=slug)
+            except SpouseContinuationSheet.DoesNotExist:
+                return Response({"message": "No spouse sheet found"}, status=status.HTTP_404_NOT_FOUND)
+            if spouse_sheet:
+
+                from datetime import datetime
+                date_string = spouse_sheet.updated_at
+                datetime_object = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+                # Format the datetime object as required
+                formatted_date = datetime_object.strftime("%d-%m-%Y")
+                spouse_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n"
+                spouse_sheet.save()
+                serializer = self.serializer_class(spouse_sheet)
+                return Response({"message": "Updated spouse continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No spouse available"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class UpdateChildContinuationSheetView(APIView):
+    """
+    An endpoint to update child continuation sheet
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = ChildContinuationSheetSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid(raise_exception=True):
+
+            description = serializer.validated_data["description"]
+
+            try:
+                child_sheet = ChildContinuationSheet.objects.get(slug=slug)
+            except ChildContinuationSheet.DoesNotExist:
+                return Response({"message": "No child sheet found"}, status=status.HTTP_404_NOT_FOUND)
+            if child_sheet:
+
+                from datetime import datetime
+                date_string = child_sheet.updated_at
+                datetime_object = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+                # Format the datetime object as required
+                formatted_date = datetime_object.strftime("%d-%m-%Y")
+                child_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n"
+                child_sheet.save()
+                serializer = self.serializer_class(child_sheet)
+                return Response({"message": "Updated child continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            return Response({"message": "No child available"}, status=status.HTTP_404_NOT_FOUND)
+    
