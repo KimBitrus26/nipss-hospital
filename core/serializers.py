@@ -44,9 +44,10 @@ class ChildrenSerializer(serializers.ModelSerializer):
         from datetime import datetime, timedelta
         import pytz
 
-        date_diff = datetime.now(pytz.utc).date() - timedelta(days=365*18)
+        date_diff = datetime.now(pytz.utc).date() - value
+        max_years_in_days = timedelta(days=365*18)
 
-        if value >= date_diff:
+        if date_diff >= max_years_in_days:
             raise serializers.ValidationError(f"Children Age must be below 18 age.")
 
         return value
@@ -225,7 +226,7 @@ class SearchChildByFileNumberSerializer(serializers.Serializer):
 class PrincipalContinuationSheetSerializer(serializers.ModelSerializer):
     
     patient_principal = PrincipalSerializer(read_only=True)
-    description =serializers.TimeField()
+    description = serializers.CharField()
 
     class Meta:
         model = PrincipalContinuationSheet
@@ -237,7 +238,7 @@ class PrincipalContinuationSheetSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         
         if request.method == "POST":
-            description =data.get("description")
+            description = data.get("description")
             if not description:
                 raise serializers.ValidationError("Please provide update description")
             
@@ -247,7 +248,7 @@ class PrincipalContinuationSheetSerializer(serializers.ModelSerializer):
 class SpouseContinuationSheetSerializer(serializers.ModelSerializer):
     
     spouse = SpouseSingleSerializer(read_only=True)
-    description =serializers.TimeField()
+    description = serializers.CharField()
 
     class Meta:
         model = SpouseContinuationSheet
@@ -259,7 +260,7 @@ class SpouseContinuationSheetSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         
         if request.method == "POST":
-            description =data.get("description")
+            description = data.get("description")
             if not description:
                 raise serializers.ValidationError("Please provide update description")
             
@@ -269,7 +270,7 @@ class SpouseContinuationSheetSerializer(serializers.ModelSerializer):
 class ChildContinuationSheetSerializer(serializers.ModelSerializer):
     
     child = ChildrenSingleSerializer(read_only=True)
-    description = serializers.TimeField()
+    description = serializers.CharField()
 
     class Meta:
         model = ChildContinuationSheet
@@ -281,7 +282,7 @@ class ChildContinuationSheetSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         
         if request.method == "POST":
-            description =data.get("description")
+            description = data.get("description")
             if not description:
                 raise serializers.ValidationError("Please provide update description")
             

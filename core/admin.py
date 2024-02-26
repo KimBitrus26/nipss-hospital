@@ -12,3 +12,7 @@ admin.site.register(BookAppointment)
 admin.site.register(Transaction)
 admin.site.register(Spouse)
 admin.site.register(Children)
+
+admin.site.register(PrincipalContinuationSheet)
+admin.site.register(SpouseContinuationSheet)
+admin.site.register(ChildContinuationSheet)

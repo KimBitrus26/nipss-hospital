@@ -314,7 +314,7 @@ class SearchPrincipalPatientByNHISView(APIView):
     An endpoint to search principal patient by NHIS number
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = SearchPatientByNHISSerializer
 
     def post(self, request, *args, **kwargs):
@@ -340,7 +340,7 @@ class SearchPrincipalPatientByFileNumberView(APIView):
     An endpoint to search principal patient by file number
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = SearchPatientByFileNumberSerializer
 
     def post(self, request, *args, **kwargs):
@@ -366,7 +366,7 @@ class SearchChildByFileNumberView(APIView):
     An endpoint to search child by file number
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = SearchChildByFileNumberSerializer
 
     def post(self, request, *args, **kwargs):
@@ -393,7 +393,7 @@ class SearchSpouseByFileNumberView(APIView):
     An endpoint to search spouse by file number
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = SearchSpouseByFileNumbererializer
 
     def post(self, request, *args, **kwargs):
@@ -419,7 +419,7 @@ class GetPrincipalContinuationSheetView(APIView):
     An endpoint to get patient principal continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = PrincipalContinuationSheetSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -432,7 +432,7 @@ class GetPrincipalContinuationSheetView(APIView):
         try:
             patient_sheet = PrincipalContinuationSheet.objects.get(patient_principal=patient)
         except PrincipalContinuationSheet.DoesNotExist:
-            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "No patient continuation sheet found"}, status=status.HTTP_404_NOT_FOUND)
         if patient_sheet:
             serializer = self.serializer_class(patient_sheet)
             return Response({"message": "Retrieved patient continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
@@ -445,7 +445,7 @@ class GetSpouseContinuationSheetView(APIView):
     An endpoint to get spouse continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = SpouseContinuationSheetSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -458,7 +458,7 @@ class GetSpouseContinuationSheetView(APIView):
         try:
             spouse_sheet = SpouseContinuationSheet.objects.get(spouse=spouse)
         except SpouseContinuationSheet.DoesNotExist:
-            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "No spouse continuation sheet found"}, status=status.HTTP_404_NOT_FOUND)
         if spouse_sheet:
             serializer = self.serializer_class(spouse_sheet)
             return Response({"message": "Retrieved spouse continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
@@ -471,7 +471,7 @@ class GetChildContinuationSheetView(APIView):
     An endpoint to get child continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = ChildContinuationSheetSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -484,7 +484,7 @@ class GetChildContinuationSheetView(APIView):
         try:
             child_sheet = ChildContinuationSheet.objects.get(child=child)
         except ChildContinuationSheet.DoesNotExist:
-            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "No child continuation sheet found"}, status=status.HTTP_404_NOT_FOUND)
         if child_sheet:
             serializer = self.serializer_class(child_sheet)
             return Response({"message": "Retrieved child continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
@@ -516,12 +516,16 @@ class UpdatePrincipalContinuationSheetView(APIView):
                 return Response({"message": "No patient sheet found"}, status=status.HTTP_404_NOT_FOUND)
             if patient_sheet:
 
-                from datetime import datetime
-                date_string = patient_sheet.updated_at
-                datetime_object = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+                datetime_object = patient_sheet.updated_at
+
                 # Format the datetime object as required
                 formatted_date = datetime_object.strftime("%d-%m-%Y")
-                patient_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n"
+
+                print(formatted_date)
+                if patient_sheet.description:
+                    patient_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                else:
+                    patient_sheet.description = f"Dr {last_name} on {formatted_date}\n {description}\n\n"
                 patient_sheet.save()
                 serializer = self.serializer_class(patient_sheet)
                 return Response({"message": "Updated patient continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
@@ -553,13 +557,16 @@ class UpdateSpouseContinuationSheetView(APIView):
                 return Response({"message": "No spouse sheet found"}, status=status.HTTP_404_NOT_FOUND)
             if spouse_sheet:
 
-                from datetime import datetime
-                date_string = spouse_sheet.updated_at
-                datetime_object = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+                datetime_object = spouse_sheet.updated_at
                 # Format the datetime object as required
                 formatted_date = datetime_object.strftime("%d-%m-%Y")
-                spouse_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n"
+
+                if spouse_sheet.description:
+                    spouse_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                else:
+                    spouse_sheet.description = f"Dr {last_name} on {formatted_date}\n {description}\n\n"
                 spouse_sheet.save()
+                
                 serializer = self.serializer_class(spouse_sheet)
                 return Response({"message": "Updated spouse continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             return Response({"message": "No spouse available"}, status=status.HTTP_404_NOT_FOUND)
@@ -588,15 +595,19 @@ class UpdateChildContinuationSheetView(APIView):
                 child_sheet = ChildContinuationSheet.objects.get(slug=slug)
             except ChildContinuationSheet.DoesNotExist:
                 return Response({"message": "No child sheet found"}, status=status.HTTP_404_NOT_FOUND)
+            
             if child_sheet:
 
-                from datetime import datetime
-                date_string = child_sheet.updated_at
-                datetime_object = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%fZ")
+                datetime_object = child_sheet.updated_at
                 # Format the datetime object as required
                 formatted_date = datetime_object.strftime("%d-%m-%Y")
-                child_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n"
+
+                if child_sheet.description:
+                    child_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                else:
+                    child_sheet.description = f"Dr {last_name} on {formatted_date}\n {description}\n\n"
                 child_sheet.save()
+                
                 serializer = self.serializer_class(child_sheet)
                 return Response({"message": "Updated child continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             return Response({"message": "No child available"}, status=status.HTTP_404_NOT_FOUND)
