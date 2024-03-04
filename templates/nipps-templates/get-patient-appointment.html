@@ -1,0 +1,74 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Patient List{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+        .list-users {
+            display: flex;
+            justify-content: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+       
+    </style>
+ </style>
+
+ {% endblock %}
+ 
+ 
+ {% block body %}
+
+    <div class="content">
+        <div class="list-users">
+            <h2 >My Appointments</h2>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Doctor Email</th>
+                    <th>Appointment Date</th>
+                    <th>Appointment Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in appointments %}
+                
+                <tr>
+                    <td>{{ appointment.doctor.email }}</td>
+                    <td>{{ appointment.appointment_date }}</td>
+                    <td>{{ appointment.status }}</td>                   
+
+                </tr>
+            
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% endblock %} 

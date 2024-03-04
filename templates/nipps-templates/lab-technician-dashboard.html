@@ -1,0 +1,44 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Lab Dashboard{% endblock %}
+
+    {% block extra_css %}
+    <style>
+     .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+    
+    </style>
+
+{% endblock %}
+
+
+{% block body %}
+
+
+
+    <div class="content">
+        <!-- Content Goes Here -->
+        <div class="content-text">
+            <h2>Welcome Lab Dashboard</h2>
+        </div>
+        <div>
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <p{% if message.tags %} class="{{ message.tags }}"{% endif %} style="text-align: center; color: green;">{{ message }}</p>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+       
+    </div>
+
+    {% endblock %}

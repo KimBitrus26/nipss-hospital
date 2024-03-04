@@ -1,0 +1,79 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Patient List{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+        .list-users {
+            display: flex;
+            justify-content: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+       
+    </style>
+ </style>
+
+ {% endblock %}
+ 
+ 
+ {% block body %}
+
+    <div class="content">
+        <div class="list-users">
+            <h2 >List of Patients</h2>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Firt Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>File Number</th>
+                    <th>View Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in patients %}
+                
+                <tr>
+                    <td>{{ patient.first_name }}</td>
+                    <td>{{ patient.last_name }}</td>
+                    <td>{{ patient.user.email }}</td>
+                    <td>{{ patient.file_number }}</td>
+
+                    <td><a href="{% url 'get_patient' patient.slug %}">Patient Details</a></td>
+                
+                </tr>
+            
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% endblock %} 

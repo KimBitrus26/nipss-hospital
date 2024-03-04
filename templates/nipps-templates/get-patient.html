@@ -1,0 +1,103 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Patient List{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+        .list-users {
+            display: flex;
+            justify-content: center;
+        }
+        .book-doctor {
+            display: flex;
+            justify-content: center;
+            margin-top: 60px;
+        }
+        .button-booking {
+            background-color: green;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            color: white;
+            justify-content: center;
+            font-size: 50px;
+            border: radius 2px;
+
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+       
+    </style>
+ </style>
+
+ {% endblock %}
+ 
+ 
+ {% block body %}
+
+    <div class="content">
+        <div class="list-users">
+            <h2 >Patient Details</h2>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>File Number</th>
+                    <th>Firt Name</th>
+                    <th>Last Name</th>
+                    <th>Email</th>
+                    <th>Gender</th>
+                    <th>Date of Birth</th>
+                    <th>Age</th>
+                    <th>Address</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Country</th>
+                    
+                </tr>
+            </thead>
+            <tbody>
+            
+                <tr>
+                    <td>{{ patient.file_number }}</td>
+                    <td>{{ patient.first_name }}</td>
+                    <td>{{ patient.last_name }}</td>
+                    <td>{{ patient.user.email }}</td>
+                    <td>{{ patient.gender }}</td>
+                    <td>{{ patient.date_of_birth }}</td>
+                    <td>{{ patient.age }}</td>
+                    <td>{{ patient.address }}</td>
+                    <td>{{ patient.city }}</td>
+                    <td>{{ patient.state }}</td>
+                    <td>{{ patient.country }}</td>
+                </tr>
+            </tbody>
+        </table>
+        
+    </div>
+
+    {% endblock %} 

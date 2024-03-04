@@ -1,0 +1,84 @@
+{% extends 'nipps-templates/base.html' %}
+{% load static %}
+
+
+{% block title %}Patient List{% endblock %}
+
+    {% block extra_css %}
+    <style>
+        .content {
+            padding: 16px;
+        }
+        .content-text {
+            
+            display: flex;
+            justify-content: center;
+        }
+        .list-users {
+            display: flex;
+            justify-content: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: black;
+            color: white;
+        }
+
+       
+    </style>
+ </style>
+
+ {% endblock %}
+ 
+ 
+ {% block body %}
+
+    <div class="content">
+        <div class="list-users">
+            <h2>Appointments</h2>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient Email</th>
+                    <th>Patient First Name</th>
+                    <th>Patient Last Name</th>
+                    <th>Patient File Number</th>
+                    <th>Appointment Date</th>
+                    <th>Appointment Status</th>
+                    <th>Approve</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for appointment in appointments %}
+                   
+                <tr>
+                    
+                    <td>{{ appointment.patient_email }}</td> 
+                    <td>{{ appointment.patient_first_name }}</td>
+                    <td>{{ appointment.patient_last_name }}</td>
+                    <td>{{ appointment.patient_file_number }}</td>
+                    <td>{{ appointment.appointment_date }}</td> 
+                    <td>{{ appointment.appointment_status }}</td>
+
+                    <td><a href="{% url 'doctor_approve_appointment' appointment.id %}">Approve Appointment</a></td>
+                
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% endblock %} 
