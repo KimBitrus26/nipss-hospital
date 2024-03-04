@@ -64,28 +64,21 @@ class CustomUserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    phone_regex = RegexValidator(regex=r'^\d{6,18}$',
-                                 message="Phone number must be between 6 to 18 digits.")
-    country_code_regex = RegexValidator(regex=r'^\d{1,3}$',
-                                 message="Country code must be between 1 to 3 digits.")
-
+    
     username = None
     slug = models.SlugField(editable=False)
     email = models.EmailField(_("email address"), unique=True)
     send_password = models.CharField(max_length=64, null=True, blank=True)
-   
-    country_code = models.CharField(validators=[country_code_regex], max_length=4)
-    phone_number = models.CharField(validators=[phone_regex], max_length=18)
-    is_phone_verified = models.BooleanField(_("Phone verified"), default=False)
     is_profile_completed = models.BooleanField(default=False)
     
     is_active = models.BooleanField(_("Is active"), default=True)
 
-    is_patient = models.BooleanField(_("Is Patient"), default=False)
-    is_receptionist = models.BooleanField(_("Is Recepttionist"), default=False)
+    is_nurse = models.BooleanField(_("Is Nurse"), default=False)
     is_doctor = models.BooleanField(_("Is Doctor"), default=False)
     is_lab_technician = models.BooleanField(_("Is Lab Technician"), default=False)
-    is_phamacist = models.BooleanField(_("Is Phamacist"), default=False)
+    is_pharmacist = models.BooleanField(_("Is Phamacist"), default=False)
+    is_account = models.BooleanField(_("Is Accountant"), default=False)
+    
     is_staff = models.BooleanField(_("Staff?"), default=False)
     is_superuser = models.BooleanField(_("Superuser?"), default=False)
 
@@ -96,18 +89,6 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
-
-    def phone_verified(self):
-        self.is_phone_verified = True
-        self.save()
-
-    def clean(self):
-        if not self.pk:
-            
-            # if self.send_password and (self._password != self.send_password):  
-            #    raise ValidationError(_(f"send_password did not match with password"))
-   
-            check_existing_phone(self.phone_number)
 
 
     def save(self, *args, **kwargs):
@@ -124,26 +105,3 @@ def _generate_code(length=OTP_LENGTH):
     characters = string.digits
     code = ''.join(random.choice(characters) for i in range(length))
     return code
-
-class OTPCode(models.Model):
-    """Model to represent OTP Code."""
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_code")
-    code = models.CharField(max_length=64, default=_generate_code, validators=[MinLengthValidator(OTP_LENGTH)])
-    is_used = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def expired(self):
-        if (datetime.now(pytz.utc) - self.created_at > timedelta(minutes=5)):
-            return True
-        return False
-
-    def otp_verified(self):
-        self.is_used = True
-        self.save()
-
-    def __str__(self):
-        return f"OTP code for {self.user.email}"
-    
