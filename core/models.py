@@ -732,3 +732,122 @@ class ChildContinuationSheet(models.Model):
             self.slug = slugify(slug_code)
            
         super().save(*args, **kwargs)
+
+
+class ChildTestRequestSheet(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    doctor_request_description = models.TextField()
+    test_result = models.TextField(null=True, blank=True)
+
+    child = models.ForeignKey(Children, on_delete=models.CASCADE, related_name='child_child_test_request_sheet')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class SpouseTestRequestSheet(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    doctor_request_description = models.TextField()
+    test_result = models.TextField(null=True, blank=True)
+
+    spouse = models.ForeignKey(Spouse, on_delete=models.CASCADE, related_name='spouse_spouse_test_request_sheet')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class PrincipalPatientTestRequestSheet(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    doctor_request_description = models.TextField()
+    test_result = models.TextField(null=True, blank=True)
+
+    principal_patient = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE, related_name='principal_patient_principal_patient_test_request_sheet')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+
+class PrincipalPatientPrescriptionForm(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    doctor_prescription = models.TextField()
+    
+    principal_patient = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE, related_name='principal_patient_principal_patient_prescription')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class ChildPrescriptionForm(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    doctor_prescription = models.TextField()
+
+    child = models.ForeignKey(Children, on_delete=models.CASCADE, related_name='child_child_prescription')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+
+
+class SpousePrescriptionForm(models.Model):
+    
+    slug = models.SlugField(editable=False)
+
+    doctor_prescription = models.TextField()
+   
+    spouse = models.ForeignKey(Spouse, on_delete=models.CASCADE, related_name='spouse_spouse_prescription')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            slug_code = generate_slug_code()
+            self.slug = slugify(slug_code)
+           
+        super().save(*args, **kwargs)
+        

@@ -4,6 +4,9 @@ from django.utils.translation import gettext_lazy as _
 from .models import  (PatientPrincipal, Doctor, Nurse, Pharmacist, AccountsRecords,
                       LabTechnician, Children, Spouse, PrincipalContinuationSheet,
                       ChildContinuationSheet, SpouseContinuationSheet,
+                      ChildTestRequestSheet, SpouseTestRequestSheet,
+                      PrincipalPatientTestRequestSheet, PrincipalPatientPrescriptionForm,
+                      ChildPrescriptionForm, SpousePrescriptionForm,
                       )
 from accounts.serializers import CustomUserDetailsSerializer
 from accounts.models import _generate_code
@@ -287,3 +290,84 @@ class ChildContinuationSheetSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Please provide update description")
             
             return data
+        
+
+class ChildTestRequestSerializer(serializers.ModelSerializer):
+
+    patient_child = serializers.SerializerMethodField("get_patient_child")
+
+    class Meta:
+        model = ChildTestRequestSheet
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")
+
+    def get_patient_child(self, obj):
+
+        try:
+            child = Children.objects.get(id=obj.child.id)
+        except Children.DoesNotExist:
+            return
+        return ChildrenSingleSerializer(child).data
+
+
+class SpouseTestRequestSerializer(serializers.ModelSerializer):
+    patient_spouse = serializers.SerializerMethodField("get_patient_spouse")
+
+    class Meta:
+        model = SpouseTestRequestSheet
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")
+
+    def get_patient_spouse(self, obj):
+        try:
+            spouse = Spouse.objects.get(id=obj.spouse.id)
+        except Spouse.DoesNotExist:
+            return
+        return SpouseSingleSerializer(spouse).data
+    
+
+class PrincipalPatientTestRequestSerializer(serializers.ModelSerializer):
+
+    patient = serializers.SerializerMethodField("get_principal_patient")
+
+    class Meta:
+        model = PrincipalPatientTestRequestSheet
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")
+
+    def get_principal_patient(self, obj):
+        try:
+            patient = PatientPrincipal.objects.get(id=obj.principal_patient.id)
+        except PatientPrincipal.DoesNotExist:
+            return
+        return PrincipalSerializer(patient).data
+    
+
+
+class UploadTestRequestSerializer(serializers.Serializer):
+
+    upload_result = serializers.CharField()
+
+
+class PrincipalPatientPrescriptionFormSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = PrincipalPatientPrescriptionForm
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")
+
+
+class ChildPrescriptionFormSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ChildPrescriptionForm
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")
+
+
+class SpousePrescriptionFormSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = SpousePrescriptionForm
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")

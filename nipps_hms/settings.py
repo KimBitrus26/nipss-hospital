@@ -14,7 +14,11 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 DEBUG = os.getenv('DEBUG')
 
 
-ALLOWED_HOSTS = ["34.195.227.158", "127.0.0.1", "ec2-34-195-227-158.compute-1.amazonaws.com"]
+ALLOWED_HOSTS = [
+    "34.195.227.158", 
+    "127.0.0.1", 
+    "ec2-34-195-227-158.compute-1.amazonaws.com",
+    "localhost",]
 
 
 # Application definition
@@ -30,6 +34,7 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'core.apps.CoreConfig',
 
+    "corsheaders",
     'storages',
     'rest_framework',
     'rest_framework.authtoken',
@@ -48,6 +53,7 @@ AUTH_USER_MODEL = "accounts.User"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -77,6 +83,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'nipps_hms.wsgi.application'
 
+CORS_ALLOW_ALL_ORIGINS = False
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://localhost:3000",
+    
+    
+]
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

@@ -20,7 +20,11 @@ from .serializers import  (PatientPrincipalSerializer, DoctorProfileSerializer,
                            PrincipalContinuationSheetSerializer,
                            SpouseContinuationSheetSerializer,
                            ChildContinuationSheetSerializer,
-                           
+                           ChildTestRequestSerializer, SpouseTestRequestSerializer,
+                           PrincipalPatientTestRequestSerializer,
+                           UploadTestRequestSerializer, ChildPrescriptionFormSerializer,
+                           PrincipalPatientPrescriptionFormSerializer,
+                           SpousePrescriptionFormSerializer,
                            )
 from nipps_hms.permission import (IsAuthenticatedNurse,
                                   IsAuthenticatedDoctor,
@@ -33,7 +37,10 @@ from accounts.models import _generate_code
 from .models import (PatientPrincipal, Spouse, Children, Prescription,
                      PrincipalContinuationSheet, ChildContinuationSheet,
                      SpouseContinuationSheet, Doctor, Pharmacist, AccountsRecords,
-                     LabTechnician, Nurse,
+                     LabTechnician, Nurse, PrincipalPatientTestRequestSheet,
+                     ChildTestRequestSheet, SpouseTestRequestSheet,
+                     PrincipalPatientPrescriptionForm, ChildPrescriptionForm,
+                     SpousePrescriptionForm,
                      
                      )
 
@@ -612,3 +619,534 @@ class UpdateChildContinuationSheetView(APIView):
                 return Response({"message": "Updated child continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             return Response({"message": "No child available"}, status=status.HTTP_404_NOT_FOUND)
     
+
+class CreateRequestPrincipalPatientTestView(APIView):
+    """
+    An endpoint for a doctor to request test on principal patient
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = PrincipalPatientTestRequestSerializer
+
+    def post(self, request, patient_file_number, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+
+        try:
+            patient = PatientPrincipal.objects.get(file_number=patient_file_number)
+        except PatientPrincipal.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+
+        request.data["principal_patient"] = patient.id
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid(raise_exception=True):  
+
+            description = serializer.validated_data["doctor_request_description"]         
+
+            
+            description = f"Test request by Dr {last_name}\n {description}"
+            serializer.save(doctor_request_description=description)
+
+            return Response({"message": "Test request sent to lab successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+
+class CreateRequestSpouseTestView(APIView):
+    """
+    An endpoint for a doctor to request test on spouse
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = SpouseTestRequestSerializer
+
+    def post(self, request, spouse_file_number, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+        try:
+            spouse = Spouse.objects.get(file_number=spouse_file_number)
+        except Spouse.DoesNotExist:
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        request.data["spouse"] = spouse.id
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            description = serializer.validated_data["doctor_request_description"]         
+
+            description = f"Test request by Dr {last_name}\n {description}"
+            serializer.save(doctor_request_description=description)
+
+            return Response({"message": "Test request sent to lab successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+
+class CreateRequestChildTestView(APIView):
+    """
+    An endpoint for a doctor to request test on child
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = ChildTestRequestSerializer
+    def post(self, request, child_file_number, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+        try:
+            child = Children.objects.get(file_number=child_file_number)
+        except Children.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        request.data["child"] = child.id
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            description = serializer.validated_data["doctor_request_description"]         
+
+            description = f"Test request by Dr {last_name}\n {description}"
+            serializer.save(doctor_request_description=description)
+
+            return Response({"message": "Test request sent to lab successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+
+class ListRequestPrincipalPatientTestView(APIView):
+    """
+    An endpoint to view list of  principal patient test request
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    serializer_class = PrincipalPatientTestRequestSerializer
+
+    def get(self, request, patient_file_number, *args, **kwargs):
+
+        try:
+            patient = PatientPrincipal.objects.get(file_number=patient_file_number)
+        except PatientPrincipal.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        if PrincipalPatientTestRequestSheet.objects.filter(principal_patient=patient).exists():
+            test_requests = PrincipalPatientTestRequestSheet.objects.filter(principal_patient=patient)
+            serializer = self.serializer_class(test_requests, many=True)
+
+            return Response({"message": "Retrieved test requests successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class ListRequestSpouseTestView(APIView):
+    """
+    An endpoint to view list of  spouse test requests
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    serializer_class = SpouseTestRequestSerializer
+
+    def get(self, request, spouse_file_number, *args, **kwargs):
+
+        try:
+            spouse = Spouse.objects.get(file_number=spouse_file_number)
+        except Spouse.DoesNotExist:
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if  SpouseTestRequestSheet.objects.filter(spouse=spouse).exists():
+            test_requests = SpouseTestRequestSheet.objects.filter(spouse=spouse)
+            serializer = self.serializer_class(test_requests, many=True)
+
+            return Response({"message": "Retrieved test requests successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class ListRequestChildTestView(APIView):
+    """
+    An endpoint to view list of  child test request
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    serializer_class = ChildTestRequestSerializer
+
+    def get(self, request, child_file_number, *args, **kwargs):
+
+        try:
+            child = Children.objects.get(file_number=child_file_number)
+        except Children.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        if ChildTestRequestSheet.objects.filter(child=child).exists():
+            test_requests = ChildTestRequestSheet.objects.filter(child=child)
+            serializer = self.serializer_class(test_requests, many=True)
+
+            return Response({"message": "Retrieved test requests successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetRequestPrincipalPatientTestView(APIView):
+    """
+    An endpoint to view a specific  principal patient test request
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    serializer_class = PrincipalPatientTestRequestSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = PrincipalPatientTestRequestSheet.objects.get(slug=slug)
+        except PrincipalPatientTestRequestSheet.DoesNotExist:
+            return Response({"message": "No patient test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(request_test)
+
+        return Response({"message": "Retrieved a test request successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class GetRequestSpouseTestView(APIView):
+    """
+    An endpoint to view a specific spouse test request
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    serializer_class = SpouseTestRequestSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = SpouseTestRequestSheet.objects.get(slug=slug)
+        except SpouseTestRequestSheet.DoesNotExist:
+            return Response({"message": "No spouse test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(request_test)
+
+        return Response({"message": "Retrieved a test request successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class GetRequestChildTestView(APIView):
+    """
+    An endpoint to view a specific  child test request
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    serializer_class = ChildTestRequestSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = ChildTestRequestSheet.objects.get(slug=slug)
+        except ChildTestRequestSheet.DoesNotExist:
+            return Response({"message": "No child test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(request_test)
+
+        return Response({"message": "Retrieved a test request successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class UploadPrincipalPatientTestResultView(APIView):
+    """
+    An endpoint to upload  principal patient test request result
+    """
+
+    permission_classes = (IsAuthenticatedLabTechnician)
+    serializer_class = UploadTestRequestSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            upload_result = serializer.validated_data["upload_result"]         
+
+            try:
+                request_test = PrincipalPatientTestRequestSheet.objects.get(slug=slug)
+            except PrincipalPatientTestRequestSheet.DoesNotExist:
+                return Response({"message": "No patient test request found"}, status=status.HTTP_404_NOT_FOUND)
+            request_test.test_result = upload_result
+            request_test.save()
+            
+            serializer = PrincipalPatientTestRequestSerializer(request_test)
+
+            return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
+
+class UploadSpouseTestResultView(APIView):
+    """
+    An endpoint to upload  spouse test request result
+    """
+
+    permission_classes = (IsAuthenticatedLabTechnician)
+    serializer_class = UploadTestRequestSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            upload_result = serializer.validated_data["upload_result"]         
+
+            try:
+                request_test = SpouseTestRequestSheet.objects.get(slug=slug)
+            except SpouseTestRequestSheet.DoesNotExist:
+                return Response({"message": "No spouse test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+            request_test.test_result = upload_result
+            request_test.save()
+            
+            serializer = SpouseTestRequestSerializer(request_test)
+
+            return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
+
+class UploadChildTestResultView(APIView):
+    """
+    An endpoint to upload child test request result
+    """
+
+    permission_classes = (IsAuthenticatedLabTechnician)
+    serializer_class = UploadTestRequestSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            upload_result = serializer.validated_data["upload_result"]         
+
+            try:
+                request_test = ChildTestRequestSheet.objects.get(slug=slug)
+            except ChildTestRequestSheet.DoesNotExist:
+                return Response({"message": "No child test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+            request_test.test_result = upload_result
+            request_test.save()
+            
+            serializer = ChildTestRequestSerializer(request_test)
+
+            return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
+
+class CreatePrincipalPatientPrescriptionView(APIView):
+    """
+    An endpoint for a doctor to create prescription
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = PrincipalPatientPrescriptionFormSerializer
+
+    def post(self, request, patient_file_number, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+
+        try:
+            patient = PatientPrincipal.objects.get(file_number=patient_file_number)
+        except PatientPrincipal.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+
+        request.data["principal_patient"] = patient.id
+        serializer = self.serializer_class(data=request.data)
+        
+        if serializer.is_valid(raise_exception=True):  
+
+            description = serializer.validated_data["doctor_prescription"]         
+
+            description = f"Prescribed by Dr {last_name}\n {description}"
+            serializer.save(doctor_prescription=description)
+
+            return Response({"message": "Patient prescription created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+
+class CreateChildPrescriptionView(APIView):
+    """
+    An endpoint for a doctor to child prescription
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = ChildPrescriptionFormSerializer
+
+    def post(self, request, child_file_number, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+        try:
+            child = Children.objects.get(file_number=child_file_number)
+        except Children.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        request.data["child"] = child.id
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            description = serializer.validated_data["doctor_prescription"]         
+
+            description = f"Prescribed by Dr {last_name}\n {description}"
+            serializer.save(doctor_prescription=description)
+
+            return Response({"message": "Patient prescription created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+
+class CreateSpousePrescriptionView(APIView):
+    """
+    An endpoint for a doctor to create spouse prescription
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = SpousePrescriptionFormSerializer
+
+    def post(self, request, spouse_file_number, *args, **kwargs):
+
+        user = self.request.user
+
+        last_name = user.user_doctor.last_name
+        try:
+            spouse = Spouse.objects.get(file_number=spouse_file_number)
+        except Spouse.DoesNotExist:
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        request.data["spouse"] = spouse.id
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid(raise_exception=True):  
+
+            description = serializer.validated_data["doctor_prescription"]         
+
+            description = f"Prescribed by Dr {last_name}\n {description}"
+            serializer.save(doctor_prescription=description)
+
+            return Response({"message": "Patient prescription created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+
+
+class ListPrincipalPatientPrescriptionView(APIView):
+    """
+    An endpoint to view list of principal patient prescriptions
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    serializer_class = PrincipalPatientPrescriptionFormSerializer
+
+    def get(self, request, patient_file_number, *args, **kwargs):
+
+        try:
+            patient = PatientPrincipal.objects.get(file_number=patient_file_number)
+        except PatientPrincipal.DoesNotExist:
+            return Response({"message": "No patient found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        if PrincipalPatientPrescriptionForm.objects.filter(principal_patient=patient).exists():
+            prescriptions = PrincipalPatientPrescriptionForm.objects.filter(principal_patient=patient)
+            serializer = self.serializer_class(prescriptions, many=True)
+
+            return Response({"message": "Retrieved prescriptions successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class ListSpousePrescriptionView(APIView):
+    """
+    An endpoint to view list of  spouse prescriptions
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    serializer_class = SpousePrescriptionFormSerializer
+
+    def get(self, request, spouse_file_number, *args, **kwargs):
+
+        try:
+            spouse = Spouse.objects.get(file_number=spouse_file_number)
+        except Spouse.DoesNotExist:
+            return Response({"message": "No spouse found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if  SpousePrescriptionForm.objects.filter(spouse=spouse).exists():
+            prescriptions = SpousePrescriptionForm.objects.filter(spouse=spouse)
+            serializer = self.serializer_class(prescriptions, many=True)
+
+            return Response({"message": "Retrieved prescriptions successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class ListChildPrescriptionFormView(APIView):
+
+    """
+    An endpoint to view list of  child prescriptions
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    serializer_class = ChildPrescriptionFormSerializer
+
+    def get(self, request, child_file_number, *args, **kwargs):
+
+        try:
+            child = Children.objects.get(file_number=child_file_number)
+        except Children.DoesNotExist:
+            return Response({"message": "No child found"}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        if ChildPrescriptionForm.objects.filter(child=child).exists():
+            prescriptions = ChildPrescriptionForm.objects.filter(child=child)
+            serializer = self.serializer_class(prescriptions, many=True)
+
+            return Response({"message": "Retrieved prescriptions successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetPrincipalPatientPrescriptionView(APIView):
+    """
+    An endpoint to view a specific  principal patient prescription
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    serializer_class = PrincipalPatientPrescriptionFormSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = PrincipalPatientPrescriptionForm.objects.get(slug=slug)
+        except PrincipalPatientPrescriptionForm.DoesNotExist:
+            return Response({"message": "No patient prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(request_test)
+
+        return Response({"message": "Retrieved a prescription successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class GetSpousePrescriptionView(APIView):
+    """
+    An endpoint to view a specific spouse prescription
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    serializer_class = SpousePrescriptionFormSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            prescription = SpousePrescriptionForm.objects.get(slug=slug)
+        except SpousePrescriptionForm.DoesNotExist:
+            return Response({"message": "No spouse prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(prescription)
+
+        return Response({"message": "Retrieved a prescription successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class GetChildPrescriptionView(APIView):
+    """
+    An endpoint to view a specific  child prescription
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    serializer_class = ChildPrescriptionFormSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            prescription = ChildPrescriptionForm.objects.get(slug=slug)
+        except ChildPrescriptionForm.DoesNotExist:
+            return Response({"message": "No child prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = self.serializer_class(prescription)
+
+        return Response({"message": "Retrieved a prescription successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
