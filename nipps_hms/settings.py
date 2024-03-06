@@ -15,9 +15,9 @@ DEBUG = os.getenv('DEBUG')
 
 
 ALLOWED_HOSTS = [
-    "34.195.227.158", 
+    "18.133.192.127", 
     "127.0.0.1", 
-    "ec2-3-13-54-18.us-east-2.compute.amazonaws.com",
+    "ec2-18-133-192-127.eu-west-2.compute.amazonaws.com",
     "localhost",]
 
 
