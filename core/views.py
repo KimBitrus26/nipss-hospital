@@ -262,7 +262,7 @@ class GetPatientView(APIView):
     """
     
     permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
-    serializer_class = PrincipalSerializer
+    serializer_class = PatientPrincipalSerializer
 
     def get(self, request, file_number, *args, **kwargs):
 
