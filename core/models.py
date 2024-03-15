@@ -742,7 +742,7 @@ class ChildTestRequestSheet(models.Model):
     test_result = models.TextField(null=True, blank=True)
 
     child = models.ForeignKey(Children, on_delete=models.CASCADE, related_name='child_child_test_request_sheet')
-
+    is_paid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -760,6 +760,7 @@ class SpouseTestRequestSheet(models.Model):
 
     doctor_request_description = models.TextField()
     test_result = models.TextField(null=True, blank=True)
+    is_paid = models.BooleanField(default=False)
 
     spouse = models.ForeignKey(Spouse, on_delete=models.CASCADE, related_name='spouse_spouse_test_request_sheet')
 
@@ -780,6 +781,7 @@ class PrincipalPatientTestRequestSheet(models.Model):
 
     doctor_request_description = models.TextField()
     test_result = models.TextField(null=True, blank=True)
+    is_paid = models.BooleanField(default=False)
 
     principal_patient = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE, related_name='principal_patient_principal_patient_test_request_sheet')
 
@@ -800,6 +802,7 @@ class PrincipalPatientPrescriptionForm(models.Model):
     slug = models.SlugField(editable=False)
 
     doctor_prescription = models.TextField()
+    is_paid = models.BooleanField(default=False)
     
     principal_patient = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE, related_name='principal_patient_principal_patient_prescription')
 
@@ -819,6 +822,7 @@ class ChildPrescriptionForm(models.Model):
     slug = models.SlugField(editable=False)
 
     doctor_prescription = models.TextField()
+    is_paid = models.BooleanField(default=False)
 
     child = models.ForeignKey(Children, on_delete=models.CASCADE, related_name='child_child_prescription')
 
@@ -838,6 +842,7 @@ class SpousePrescriptionForm(models.Model):
     slug = models.SlugField(editable=False)
 
     doctor_prescription = models.TextField()
+    is_paid = models.BooleanField(default=False)
    
     spouse = models.ForeignKey(Spouse, on_delete=models.CASCADE, related_name='spouse_spouse_prescription')
 

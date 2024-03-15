@@ -854,7 +854,7 @@ class UploadPrincipalPatientTestResultView(APIView):
     def post(self, request, slug, *args, **kwargs):
 
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             upload_result = serializer.validated_data["upload_result"]         
 
@@ -868,6 +868,7 @@ class UploadPrincipalPatientTestResultView(APIView):
             serializer = PrincipalPatientTestRequestSerializer(request_test)
 
             return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UploadSpouseTestResultView(APIView):
