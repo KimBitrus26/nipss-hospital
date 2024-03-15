@@ -262,7 +262,7 @@ class GetPatientView(APIView):
     """
     
     permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
-    serializer_class = PrincipalSerializer
+    serializer_class = PatientPrincipalSerializer
 
     def get(self, request, file_number, *args, **kwargs):
 
@@ -717,7 +717,7 @@ class ListRequestPrincipalPatientTestView(APIView):
     An endpoint to view list of  principal patient test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
     serializer_class = PrincipalPatientTestRequestSerializer
 
     def get(self, request, patient_file_number, *args, **kwargs):
@@ -741,7 +741,7 @@ class ListRequestSpouseTestView(APIView):
     An endpoint to view list of  spouse test requests
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
     serializer_class = SpouseTestRequestSerializer
 
     def get(self, request, spouse_file_number, *args, **kwargs):
@@ -764,7 +764,7 @@ class ListRequestChildTestView(APIView):
     An endpoint to view list of  child test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
     serializer_class = ChildTestRequestSerializer
 
     def get(self, request, child_file_number, *args, **kwargs):
@@ -788,7 +788,7 @@ class GetRequestPrincipalPatientTestView(APIView):
     An endpoint to view a specific  principal patient test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
     serializer_class = PrincipalPatientTestRequestSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -808,7 +808,7 @@ class GetRequestSpouseTestView(APIView):
     An endpoint to view a specific spouse test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
     serializer_class = SpouseTestRequestSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -828,7 +828,7 @@ class GetRequestChildTestView(APIView):
     An endpoint to view a specific  child test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
     serializer_class = ChildTestRequestSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -848,13 +848,13 @@ class UploadPrincipalPatientTestResultView(APIView):
     An endpoint to upload  principal patient test request result
     """
 
-    permission_classes = (IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedLabTechnician,)
     serializer_class = UploadTestRequestSerializer
 
     def post(self, request, slug, *args, **kwargs):
 
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             upload_result = serializer.validated_data["upload_result"]         
 
@@ -868,6 +868,7 @@ class UploadPrincipalPatientTestResultView(APIView):
             serializer = PrincipalPatientTestRequestSerializer(request_test)
 
             return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UploadSpouseTestResultView(APIView):
@@ -875,7 +876,7 @@ class UploadSpouseTestResultView(APIView):
     An endpoint to upload  spouse test request result
     """
 
-    permission_classes = (IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedLabTechnician,)
     serializer_class = UploadTestRequestSerializer
 
     def post(self, request, slug, *args, **kwargs):
@@ -903,7 +904,7 @@ class UploadChildTestResultView(APIView):
     An endpoint to upload child test request result
     """
 
-    permission_classes = (IsAuthenticatedLabTechnician)
+    permission_classes = (IsAuthenticatedLabTechnician,)
     serializer_class = UploadTestRequestSerializer
 
     def post(self, request, slug, *args, **kwargs):
