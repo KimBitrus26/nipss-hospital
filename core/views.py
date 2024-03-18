@@ -25,6 +25,7 @@ from .serializers import  (PatientPrincipalSerializer, DoctorProfileSerializer,
                            UploadTestRequestSerializer, ChildPrescriptionFormSerializer,
                            PrincipalPatientPrescriptionFormSerializer,
                            SpousePrescriptionFormSerializer,
+                           BillPrescriptionSerializer,
                            )
 from nipps_hms.permission import (IsAuthenticatedNurse,
                                   IsAuthenticatedDoctor,
@@ -59,7 +60,8 @@ class CreatePatientView(CreateAPIView):
         
         serializer = self.serializer_class(data=request.data)
         
-        if serializer.is_valid(raise_exception=True):
+        
+        if serializer.is_valid(raise_exception=False):
 
             last_name = serializer.validated_data["last_name"]
 
@@ -77,7 +79,8 @@ class CreatePatientView(CreateAPIView):
                     child_serializer.save()
                 
             return Response({"message": "Patient file created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+    
+        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class CreateDoctorProfileView(CreateAPIView):
@@ -426,7 +429,7 @@ class GetPrincipalContinuationSheetView(APIView):
     An endpoint to get patient principal continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse | IsAuthenticatedAccountsRecord,)
     serializer_class = PrincipalContinuationSheetSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -452,7 +455,7 @@ class GetSpouseContinuationSheetView(APIView):
     An endpoint to get spouse continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse | IsAuthenticatedAccountsRecord,)
     serializer_class = SpouseContinuationSheetSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -478,7 +481,7 @@ class GetChildContinuationSheetView(APIView):
     An endpoint to get child continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse | IsAuthenticatedAccountsRecord,)
     serializer_class = ChildContinuationSheetSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -717,7 +720,7 @@ class ListRequestPrincipalPatientTestView(APIView):
     An endpoint to view list of  principal patient test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician | IsAuthenticatedAccountsRecord | IsAuthenticatedNurse | IsAuthenticatedPharmacist,)
     serializer_class = PrincipalPatientTestRequestSerializer
 
     def get(self, request, patient_file_number, *args, **kwargs):
@@ -741,7 +744,7 @@ class ListRequestSpouseTestView(APIView):
     An endpoint to view list of  spouse test requests
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician | IsAuthenticatedAccountsRecord | IsAuthenticatedNurse | IsAuthenticatedPharmacist,)
     serializer_class = SpouseTestRequestSerializer
 
     def get(self, request, spouse_file_number, *args, **kwargs):
@@ -764,7 +767,7 @@ class ListRequestChildTestView(APIView):
     An endpoint to view list of  child test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician | IsAuthenticatedAccountsRecord | IsAuthenticatedNurse | IsAuthenticatedPharmacist,)
     serializer_class = ChildTestRequestSerializer
 
     def get(self, request, child_file_number, *args, **kwargs):
@@ -788,7 +791,7 @@ class GetRequestPrincipalPatientTestView(APIView):
     An endpoint to view a specific  principal patient test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician | IsAuthenticatedAccountsRecord | IsAuthenticatedNurse | IsAuthenticatedPharmacist,)
     serializer_class = PrincipalPatientTestRequestSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -808,7 +811,7 @@ class GetRequestSpouseTestView(APIView):
     An endpoint to view a specific spouse test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician | IsAuthenticatedAccountsRecord | IsAuthenticatedNurse | IsAuthenticatedPharmacist,)
     serializer_class = SpouseTestRequestSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -828,7 +831,7 @@ class GetRequestChildTestView(APIView):
     An endpoint to view a specific  child test request
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedLabTechnician | IsAuthenticatedAccountsRecord | IsAuthenticatedNurse | IsAuthenticatedPharmacist,)
     serializer_class = ChildTestRequestSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -949,14 +952,23 @@ class CreatePrincipalPatientPrescriptionView(APIView):
         request.data["principal_patient"] = patient.id
         serializer = self.serializer_class(data=request.data)
         
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
-            description = serializer.validated_data["doctor_prescription"]         
+            description = serializer.validated_data["doctor_prescription"]   
+              
 
-            description = f"Prescribed by Dr {last_name}\n {description}"
+            description = f"Prescription prescribed by Dr {last_name}\n {description}"
             serializer.save(doctor_prescription=description)
 
-            return Response({"message": "Patient prescription created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+            ## update patient continuation sheet
+            if patient.patient_principal_principal_continuation_sheet.description:
+                patient.patient_principal_principal_continuation_sheet.description += description
+            else:
+                patient.patient_principal_principal_continuation_sheet.description = description
+            patient.patient_principal_principal_continuation_sheet.save()
+            
+            return Response({"message": "Patient prescription created and sent to pharmacy successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class CreateChildPrescriptionView(APIView):
@@ -979,14 +991,22 @@ class CreateChildPrescriptionView(APIView):
         
         request.data["child"] = child.id
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             description = serializer.validated_data["doctor_prescription"]         
 
-            description = f"Prescribed by Dr {last_name}\n {description}"
+            description = f"Prescription prescribed by Dr {last_name}\n {description}"
             serializer.save(doctor_prescription=description)
 
-            return Response({"message": "Patient prescription created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+             ## update patient continuation sheet
+            if child.child_child_continuation_sheet.description:
+                child.child_child_continuation_sheet.description += description
+            else:
+                child.child_child_continuation_sheet.description = description
+            child.child_child_continuation_sheet.save()
+            
+            return Response({"message": "Patient prescription created and sent to pharmacy successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
         
 
 class CreateSpousePrescriptionView(APIView):
@@ -1009,23 +1029,30 @@ class CreateSpousePrescriptionView(APIView):
             
         request.data["spouse"] = spouse.id
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
-
+        if serializer.is_valid():  
+        
             description = serializer.validated_data["doctor_prescription"]         
 
-            description = f"Prescribed by Dr {last_name}\n {description}"
+            description = f"Prescription prescribed by Dr {last_name}\n {description}"
             serializer.save(doctor_prescription=description)
 
-            return Response({"message": "Patient prescription created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        
+             ## update patient continuation sheet
+            if spouse.spouse_spouse_continuation_sheet.description:
+                spouse.spouse_spouse_continuation_sheet.description += description
+            else:
+                spouse.spouse_spouse_continuation_sheet.description = description
+            spouse.spouse_spouse_continuation_sheet.save()
 
+            return Response({"message": "Patient prescription created and sent to pharmacy successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class ListPrincipalPatientPrescriptionView(APIView):
     """
     An endpoint to view list of principal patient prescriptions
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist | IsAuthenticatedAccountsRecord,)
     serializer_class = PrincipalPatientPrescriptionFormSerializer
 
     def get(self, request, patient_file_number, *args, **kwargs):
@@ -1049,7 +1076,7 @@ class ListSpousePrescriptionView(APIView):
     An endpoint to view list of  spouse prescriptions
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist | IsAuthenticatedAccountsRecord,)
     serializer_class = SpousePrescriptionFormSerializer
 
     def get(self, request, spouse_file_number, *args, **kwargs):
@@ -1067,13 +1094,13 @@ class ListSpousePrescriptionView(APIView):
         return Response({"message": "Something went wrong. Please try again"}, status=status.HTTP_404_NOT_FOUND)
     
 
-class ListChildPrescriptionFormView(APIView):
+class ListChildPrescriptionView(APIView):
 
     """
     An endpoint to view list of  child prescriptions
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist | IsAuthenticatedAccountsRecord,)
     serializer_class = ChildPrescriptionFormSerializer
 
     def get(self, request, child_file_number, *args, **kwargs):
@@ -1097,17 +1124,17 @@ class GetPrincipalPatientPrescriptionView(APIView):
     An endpoint to view a specific  principal patient prescription
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist | IsAuthenticatedAccountsRecord, )
     serializer_class = PrincipalPatientPrescriptionFormSerializer
 
     def get(self, request, slug, *args, **kwargs):
 
         try:
-            request_test = PrincipalPatientPrescriptionForm.objects.get(slug=slug)
+            prescription = PrincipalPatientPrescriptionForm.objects.get(slug=slug)
         except PrincipalPatientPrescriptionForm.DoesNotExist:
             return Response({"message": "No patient prescription found"}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.serializer_class(request_test)
+        serializer = self.serializer_class(prescription)
 
         return Response({"message": "Retrieved a prescription successfully", "data": serializer.data}, status=status.HTTP_200_OK)
         
@@ -1117,7 +1144,7 @@ class GetSpousePrescriptionView(APIView):
     An endpoint to view a specific spouse prescription
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist | IsAuthenticatedAccountsRecord,)
     serializer_class = SpousePrescriptionFormSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -1137,7 +1164,7 @@ class GetChildPrescriptionView(APIView):
     An endpoint to view a specific  child prescription
     """
     
-    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse | IsAuthenticatedPharmacist | IsAuthenticatedAccountsRecord,)
     serializer_class = ChildPrescriptionFormSerializer
 
     def get(self, request, slug, *args, **kwargs):
@@ -1150,4 +1177,224 @@ class GetChildPrescriptionView(APIView):
         serializer = self.serializer_class(prescription)
 
         return Response({"message": "Retrieved a prescription successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class PayRequestPrincipalPatientTestView(APIView):
+    """
+    An endpoint to pay specific  principal patient test request
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = PrincipalPatientTestRequestSheet.objects.get(slug=slug)
+        except PrincipalPatientTestRequestSheet.DoesNotExist:
+            return Response({"message": "No patient test request found"}, status=status.HTTP_404_NOT_FOUND)
+        request_test.is_paid = True
+        request_test.save()
+        serializer = PrincipalPatientTestRequestSerializer(request_test)
+
+        return Response({"message": "Updated payment successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+            
+
+class PayRequestSpouseTestView(APIView):
+    """
+    An endpoint to pay a specific spouse test request
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+    
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = SpouseTestRequestSheet.objects.get(slug=slug)
+        except SpouseTestRequestSheet.DoesNotExist:
+            return Response({"message": "No spouse test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+        request_test.is_paid = True
+        request_test.save()
+        serializer = SpouseTestRequestSerializer(request_test)
+
+        return Response({"message": "Updated payment successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+    
+
+class PayRequestChildTestView(APIView):
+    """
+    An endpoint to pay a specific  child test request
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            request_test = ChildTestRequestSheet.objects.get(slug=slug)
+        except ChildTestRequestSheet.DoesNotExist:
+            return Response({"message": "No child test request found"}, status=status.HTTP_404_NOT_FOUND)
+
+        request_test.is_paid = True
+        request_test.save()
+        serializer = ChildTestRequestSerializer(request_test)
+
+        return Response({"message": "Updated payment successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+     
+
+class PayPrincipalPatientPrescriptionView(APIView):
+    """
+    An endpoint to pay  principal patient prescription
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+    serializer_class = PrincipalPatientPrescriptionFormSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            prescription = PrincipalPatientPrescriptionForm.objects.get(slug=slug)
+        except PrincipalPatientPrescriptionForm.DoesNotExist:
+            return Response({"message": "No patient prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not prescription.is_billed:
+            return Response({"message": "Prescription not bill yet", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        
+        prescription.is_paid = True
+        prescription.save()
+        serializer = self.serializer_class(prescription)
+
+        return Response({"message": "Prescription payment made successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class PaySpousePrescriptionView(APIView):
+    """
+    An endpoint to make payment spouse prescription
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+    serializer_class = SpousePrescriptionFormSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            prescription = SpousePrescriptionForm.objects.get(slug=slug)
+        except SpousePrescriptionForm.DoesNotExist:
+            return Response({"message": "No spouse prescription found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not prescription.is_billed:
+            return Response({"message": "Prescription not bill yet", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        
+        prescription.is_paid = True
+        prescription.save()
+        serializer = self.serializer_class(prescription)
+
+        return Response({"message": "Prescription payment made successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        
+
+class PayChildPrescriptionView(APIView):
+    """
+    An endpoint to view a specific  child prescription
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+    serializer_class = ChildPrescriptionFormSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            prescription = ChildPrescriptionForm.objects.get(slug=slug)
+        except ChildPrescriptionForm.DoesNotExist:
+            return Response({"message": "No child prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not prescription.is_billed:
+            return Response({"message": "Prescription not bill yet", "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        prescription.is_paid = True
+        prescription.save()
+        serializer = self.serializer_class(prescription)
+
+        return Response({"message": "Prescription payment made successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+    
+
+class BillPrincipalPatientPrescriptionView(APIView):
+    """
+    An endpoint to bill pay  principal patient prescription
+    """
+    
+    permission_classes = (IsAuthenticatedPharmacist,)
+    serializer_class = BillPrescriptionSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            amount = serializer.validated_data["amount"]
+
+            try:
+                prescription = PrincipalPatientPrescriptionForm.objects.get(slug=slug)
+            except PrincipalPatientPrescriptionForm.DoesNotExist:
+                return Response({"message": "No patient prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+            prescription.amount = amount
+            prescription.is_billed = True
+            prescription.save()
+            serializer_prescription = PrincipalPatientPrescriptionFormSerializer(prescription)
+
+            return Response({"message": "Prescription billing made successfully", "data": serializer_prescription.data}, status=status.HTTP_200_OK)
+        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class BillSpousePrescriptionView(APIView):
+    """
+    An endpoint to bill payment spouse prescription
+    """
+    
+    permission_classes = (IsAuthenticatedPharmacist,)
+    serializer_class = BillPrescriptionSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            amount = serializer.validated_data["amount"]
+
+            try:
+                prescription = SpousePrescriptionForm.objects.get(slug=slug)
+            except SpousePrescriptionForm.DoesNotExist:
+                return Response({"message": "No spouse prescription found"}, status=status.HTTP_404_NOT_FOUND)
+        
+            prescription.amount = amount
+            prescription.is_billed = True
+            prescription.save()
+            serializer_prescription = SpousePrescriptionFormSerializer(prescription)
+
+            return Response({"message": "Prescription billing made successfully", "data": serializer_prescription.data}, status=status.HTTP_200_OK)
+        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class BillChildPrescriptionView(APIView):
+    """
+    An endpoint to bill  child prescription
+    """
+    
+    permission_classes = (IsAuthenticatedPharmacist,)
+    serializer_class = BillPrescriptionSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            amount = serializer.validated_data["amount"]
+
+            try:
+                prescription = ChildPrescriptionForm.objects.get(slug=slug)
+            except ChildPrescriptionForm.DoesNotExist:
+                return Response({"message": "No child prescription found"}, status=status.HTTP_404_NOT_FOUND)
+
+            prescription.amount = amount
+            prescription.is_billed = True
+            prescription.save()
+            serializer_prescription = ChildPrescriptionFormSerializer(prescription)
+
+            return Response({"message": "Prescription billing made successfully", "data": serializer_prescription.data}, status=status.HTTP_200_OK)
+        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
         

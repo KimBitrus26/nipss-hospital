@@ -198,6 +198,9 @@ class Spouse(models.Model):
            
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class PatientPrincipal(models.Model):
     
@@ -262,6 +265,9 @@ class Children(models.Model):
     
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Nurse(models.Model):
     
@@ -312,6 +318,9 @@ class BookAppointment(models.Model):
             self.slug = slugify(slug_code)
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
     def __str__(self):
         return f"Appointment for {self.patient.first_name} with {self.doctor.first_name} on {self.appointment_date}"
     
@@ -338,6 +347,9 @@ class PatientDiagnostic(models.Model):
 
     def __str__(self):
         return f"Diagnostic"
+    
+    class Meta:
+        ordering = ("-created_at", )
 
 
 class LabTestResult(models.Model):
@@ -360,6 +372,9 @@ class LabTestResult(models.Model):
 
     def __str__(self):
         return f"Lab Test"
+    
+    class Meta:
+        ordering = ("-created_at", )
 
 
 class Prescription(models.Model):
@@ -384,6 +399,9 @@ class Prescription(models.Model):
 
     def __str__(self):
         return f"Prescription"
+    
+    class Meta:
+        ordering = ("-created_at", )
     
 
 class Pharmacy(models.Model):
@@ -447,6 +465,9 @@ class DeathReport(models.Model):
             self.slug = slugify(slug_code)
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
     def __str__(self):
         return f"Death Report for {self.patient_name}"
 
@@ -472,6 +493,9 @@ class BirthReport(models.Model):
             slug_code = generate_slug_code()
             self.slug = slugify(slug_code)
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ("-created_at", )
 
     def __str__(self):
         return self.baby_name
@@ -514,6 +538,9 @@ class BloodBankReport(models.Model):
     def __str__(self):
         return f"Blood Bank Report for {self.donor_name}"
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Ward(models.Model):
 
@@ -534,6 +561,9 @@ class Ward(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Bed(models.Model):
 
@@ -553,6 +583,10 @@ class Bed(models.Model):
 
     def __str__(self):
         return f"{self.bed_number} - {self.ward}"
+    
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Cabin(models.Model):
 
@@ -573,6 +607,11 @@ class Cabin(models.Model):
 
     def __str__(self):
         return f"{self.cabin_number} - {self.ward}"
+
+
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Admission(models.Model):
 
@@ -624,6 +663,9 @@ class Admission(models.Model):
         self.discharged_at = datetime.now(pytz.utc)
         self.save()
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Medicine(models.Model):
 
@@ -653,6 +695,9 @@ class Medicine(models.Model):
     def __str__(self):
         return self.name
     
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class Operation(models.Model):
 
@@ -677,6 +722,10 @@ class Operation(models.Model):
         return f"Operation for  on {self.operation_date}"
 
 
+    class Meta:
+        ordering = ("-created_at", )
+
+
 class PrincipalContinuationSheet(models.Model):
     
     slug = models.SlugField(editable=False)
@@ -694,6 +743,9 @@ class PrincipalContinuationSheet(models.Model):
             self.slug = slugify(slug_code)
            
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ("-created_at", )
 
 
 class SpouseContinuationSheet(models.Model):
@@ -715,6 +767,10 @@ class SpouseContinuationSheet(models.Model):
         super().save(*args, **kwargs)
 
 
+    class Meta:
+        ordering = ("-created_at", )
+
+
 class ChildContinuationSheet(models.Model):
     
     slug = models.SlugField(editable=False)
@@ -732,6 +788,10 @@ class ChildContinuationSheet(models.Model):
             self.slug = slugify(slug_code)
            
         super().save(*args, **kwargs)
+
+
+    class Meta:
+        ordering = ("-created_at", )
 
 
 class ChildTestRequestSheet(models.Model):
@@ -752,6 +812,9 @@ class ChildTestRequestSheet(models.Model):
             self.slug = slugify(slug_code)
            
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ("-created_at", )
 
 
 class SpouseTestRequestSheet(models.Model):
@@ -774,6 +837,9 @@ class SpouseTestRequestSheet(models.Model):
            
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class PrincipalPatientTestRequestSheet(models.Model):
     
@@ -795,6 +861,9 @@ class PrincipalPatientTestRequestSheet(models.Model):
            
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 
 class PrincipalPatientPrescriptionForm(models.Model):
@@ -803,6 +872,9 @@ class PrincipalPatientPrescriptionForm(models.Model):
 
     doctor_prescription = models.TextField()
     is_paid = models.BooleanField(default=False)
+    is_billed = models.BooleanField(default=False)
+    drugs_dispensed = models.BooleanField(default=False)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     
     principal_patient = models.ForeignKey(PatientPrincipal, on_delete=models.CASCADE, related_name='principal_patient_principal_patient_prescription')
 
@@ -815,6 +887,9 @@ class PrincipalPatientPrescriptionForm(models.Model):
             self.slug = slugify(slug_code)
            
         super().save(*args, **kwargs)
+    
+    class Meta:
+        ordering = ("-created_at", )
 
 
 class ChildPrescriptionForm(models.Model):
@@ -823,6 +898,9 @@ class ChildPrescriptionForm(models.Model):
 
     doctor_prescription = models.TextField()
     is_paid = models.BooleanField(default=False)
+    is_billed = models.BooleanField(default=False)
+    drugs_dispensed = models.BooleanField(default=False)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
 
     child = models.ForeignKey(Children, on_delete=models.CASCADE, related_name='child_child_prescription')
 
@@ -836,6 +914,9 @@ class ChildPrescriptionForm(models.Model):
            
         super().save(*args, **kwargs)
 
+    class Meta:
+        ordering = ("-created_at", )
+
 
 class SpousePrescriptionForm(models.Model):
     
@@ -843,6 +924,9 @@ class SpousePrescriptionForm(models.Model):
 
     doctor_prescription = models.TextField()
     is_paid = models.BooleanField(default=False)
+    is_billed = models.BooleanField(default=False)
+    drugs_dispensed = models.BooleanField(default=False)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
    
     spouse = models.ForeignKey(Spouse, on_delete=models.CASCADE, related_name='spouse_spouse_prescription')
 
@@ -856,3 +940,5 @@ class SpousePrescriptionForm(models.Model):
            
         super().save(*args, **kwargs)
         
+    class Meta:
+        ordering = ("-created_at", )
