@@ -371,3 +371,9 @@ class SpousePrescriptionFormSerializer(serializers.ModelSerializer):
         model = SpousePrescriptionForm
         fields = "__all__"
         read_only_fields = ("created_at", "updated_at")
+
+
+
+class BillPrescriptionSerializer(serializers.Serializer):
+
+    amount = serializers.IntegerField()

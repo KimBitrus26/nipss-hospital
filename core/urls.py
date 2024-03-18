@@ -22,7 +22,17 @@ from .views import (
                     ListRequestSpouseTestView, GetRequestChildTestView,
                     GetRequestPrincipalPatientTestView, GetRequestSpouseTestView,
                     UploadChildTestResultView, UploadPrincipalPatientTestResultView,
-                    UploadSpouseTestResultView,
+                    UploadSpouseTestResultView, PayRequestPrincipalPatientTestView,
+                    PayRequestChildTestView, PayRequestSpouseTestView,
+                    CreatePrincipalPatientPrescriptionView,
+                    CreateChildPrescriptionView, CreateSpousePrescriptionView,
+                    ListChildPrescriptionView, ListSpousePrescriptionView,
+                    ListPrincipalPatientPrescriptionView,
+                    GetPrincipalPatientPrescriptionView, GetChildPrescriptionView,
+                    GetSpousePrescriptionView, PayChildPrescriptionView,
+                    PayPrincipalPatientPrescriptionView, PaySpousePrescriptionView,
+                    BillChildPrescriptionView, BillSpousePrescriptionView,
+                    BillPrincipalPatientPrescriptionView,
                     
                     )
 
@@ -79,6 +89,31 @@ urlpatterns = [
     path("upload-patient-test-result/<slug:slug>/", UploadPrincipalPatientTestResultView.as_view(), name="upload_patient_test_result"),
     path("upload-spouse-test-result/<slug:slug>/", UploadSpouseTestResultView.as_view(), name="upload_spouse_test_result"),
     path("upload-child-test-result/<slug:slug>/", UploadChildTestResultView.as_view(), name="upload_child_test_result"),
+
+    path("pay-child-test-result/<slug:slug>/", PayRequestChildTestView.as_view(), name="pay_child_test_result"),
+    path("pay-spouse-test-result/<slug:slug>/", PayRequestSpouseTestView.as_view(), name="pay_spouse_test_result"),
+    path("pay-principal-test-result/<slug:slug>/", PayRequestPrincipalPatientTestView.as_view(), name="pay_principal_test_result"),
+
+    path("create-patient-prescription/<str:patient_file_number>/", CreatePrincipalPatientPrescriptionView.as_view(), name="create_patient_prescription"),
+    path("create-spouse-prescription/<str:spouse_file_number>/", CreateSpousePrescriptionView.as_view(), name="create_spouse_prescription"),
+    path("create-child-prescription/<str:child_file_number>/", CreateChildPrescriptionView.as_view(), name="create_child_prescription"),
+
+
+    path("list-patient-prescription/<str:patient_file_number>/", ListPrincipalPatientPrescriptionView.as_view(), name="create_patient_prescription"),
+    path("list-spouse-prescription/<str:spouse_file_number>/", ListSpousePrescriptionView.as_view(), name="list_spouse_prescription"),
+    path("list-child-prescription/<str:child_file_number>/", ListChildPrescriptionView.as_view(), name="list_child_prescription"),
+
+    path("get-patient-prescription/<slug:slug>/", GetPrincipalPatientPrescriptionView.as_view(), name="get_patient_prescription"),
+    path("get-spouse-prescription/<slug:slug>/", GetSpousePrescriptionView.as_view(), name="get_spouse_prescription"),
+    path("get-child-prescription/<slug:slug>/", GetChildPrescriptionView.as_view(), name="get_child_prescription"),
+
+    path("pay-patient-prescription/<slug:slug>/", PayPrincipalPatientPrescriptionView.as_view(), name="pay_patient_prescription"),
+    path("pay-spouse-prescription/<slug:slug>/", PaySpousePrescriptionView.as_view(), name="pay_spouse_prescription"),
+    path("pay-child-prescription/<slug:slug>/", PayChildPrescriptionView.as_view(), name="pay_child_prescription"),
+
+    path("bill-patient-prescription/<slug:slug>/", BillPrincipalPatientPrescriptionView.as_view(), name="bill_patient_prescription"),
+    path("bill-spouse-prescription/<slug:slug>/", BillSpousePrescriptionView.as_view(), name="bill_spouse_prescription"),
+    path("bill-child-prescription/<slug:slug>/", BillChildPrescriptionView.as_view(), name="bill_child_prescription"),
 
 
 ]
