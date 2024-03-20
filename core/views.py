@@ -957,7 +957,7 @@ class CreatePrincipalPatientPrescriptionView(APIView):
             description = serializer.validated_data["doctor_prescription"]   
               
 
-            description = f"Prescription prescribed by Dr {last_name}\n {description}"
+            description = f"Prescription prescribed by Dr {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
 
             ## update patient continuation sheet
@@ -995,7 +995,7 @@ class CreateChildPrescriptionView(APIView):
 
             description = serializer.validated_data["doctor_prescription"]         
 
-            description = f"Prescription prescribed by Dr {last_name}\n {description}"
+            description = f"Prescription prescribed by Dr {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
 
              ## update patient continuation sheet
@@ -1033,7 +1033,7 @@ class CreateSpousePrescriptionView(APIView):
         
             description = serializer.validated_data["doctor_prescription"]         
 
-            description = f"Prescription prescribed by Dr {last_name}\n {description}"
+            description = f"Prescription prescribed by Dr {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
 
              ## update patient continuation sheet
