@@ -14,16 +14,18 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 DEBUG = os.getenv('DEBUG')
 
 
-ALLOWED_HOSTS = [
-    "18.133.192.127", 
-    "127.0.0.1", 
-    "ec2-18-133-192-127.eu-west-2.compute.amazonaws.com",
-    "localhost",]
+# ALLOWED_HOSTS = [
+#     "18.133.192.127", 
+#     "127.0.0.1", 
+#     "ec2-18-133-192-127.eu-west-2.compute.amazonaws.com",
+#     "localhost",]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    # "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -33,6 +35,8 @@ INSTALLED_APPS = [
 
     'accounts.apps.AccountsConfig',
     'core.apps.CoreConfig',
+
+    "fcm_django",
 
     "corsheaders",
     'storages',
@@ -82,12 +86,27 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'nipps_hms.wsgi.application'
+# ASGI_APPLICATION = 'nipps_hms.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+            
+        },
+    },
+}
+CHANNELS_WS_PROTOCOLS = ["graphql-ws", ]
 
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://2bc6-105-112-124-98.ngrok-free.app",
+
     
     
 ]
@@ -245,3 +264,21 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+
+
+
+from firebase_admin import credentials
+import firebase_admin
+
+# GOOGLE_APPLICATION_CREDENTIALS = os.path.join(BASE_DIR, 'piinc-404706-firebase-adminsdk-f4vyl-dbbc917048.json')
+# FIREBASE_APP = initialize_app()
+
+cred = credentials.Certificate(os.path.join(BASE_DIR, 'piinc-404706-firebase-adminsdk-f4vyl-dbbc917048.json'))
+firebase_admin.initialize_app(cred)
+
+
+#settings for firebase cloud manager
+FCM_DJANGO_SETTINGS = {
+        "FCM_SERVER_KEY": os.getenv("FCM_SERVER_KEY"),
+        "UPDATE_ON_DUPLICATE_REG_ID": True
+}

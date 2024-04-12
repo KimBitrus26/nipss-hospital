@@ -7,6 +7,7 @@ from .models import  (PatientPrincipal, Doctor, Nurse, Pharmacist, AccountsRecor
                       ChildTestRequestSheet, SpouseTestRequestSheet,
                       PrincipalPatientTestRequestSheet, PrincipalPatientPrescriptionForm,
                       ChildPrescriptionForm, SpousePrescriptionForm,
+                      BookAppointment,
                       )
 from accounts.serializers import CustomUserDetailsSerializer
 from accounts.models import _generate_code
@@ -191,6 +192,7 @@ class LabTechnicianProfileSerializer(serializers.ModelSerializer):
         if LabTechnician.objects.filter(user=user).exists():
             raise serializers.ValidationError("Lab profile already exist.")
         return data
+
 
 class PharmarcistProfileSerializer(serializers.ModelSerializer):
     
@@ -377,3 +379,14 @@ class SpousePrescriptionFormSerializer(serializers.ModelSerializer):
 class BillPrescriptionSerializer(serializers.Serializer):
 
     amount = serializers.IntegerField()
+
+
+class BookAppointmentSerializer(serializers.ModelSerializer):
+    patient = PatientPrincipalSerializer(read_only=True)
+    doctor_profile = DoctorProfileSerializer(read_only=True)
+    doctor_user = CustomUserDetailsSerializer(read_only=True)
+
+    class Meta:
+        model = BookAppointment
+        fields = "__all__"
+        read_only_fields = ("created_at", "updated_at")

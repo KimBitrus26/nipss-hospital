@@ -91,3 +91,8 @@ class CustomLoginSerializer(LoginSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields.pop('username')
+
+
+class FCMDeviceSerializer(serializers.Serializer):
+    registration_token = serializers.CharField(required=True)
+    

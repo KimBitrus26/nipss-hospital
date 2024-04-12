@@ -13,16 +13,20 @@ services:
     env_file:
       - .env
 
+    restart: on-failure
+    
+  nginx:
+    restart: always
+    build: ./nginx
     depends_on:
-      - redis
-
-    restart: on-failure
-    
-  redis:
-    image: redis:alpine
-
-    restart: on-failure
-    
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - static_volume:/home/nipss/static
+      - media_volume:/home/nipss/media  
+      
 volumes:
   static_volume:
   media_volume:

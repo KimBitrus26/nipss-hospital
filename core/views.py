@@ -25,7 +25,7 @@ from .serializers import  (PatientPrincipalSerializer, DoctorProfileSerializer,
                            UploadTestRequestSerializer, ChildPrescriptionFormSerializer,
                            PrincipalPatientPrescriptionFormSerializer,
                            SpousePrescriptionFormSerializer,
-                           BillPrescriptionSerializer,
+                           BillPrescriptionSerializer, BookAppointmentSerializer,
                            )
 from nipps_hms.permission import (IsAuthenticatedNurse,
                                   IsAuthenticatedDoctor,
@@ -41,7 +41,7 @@ from .models import (PatientPrincipal, Spouse, Children, Prescription,
                      LabTechnician, Nurse, PrincipalPatientTestRequestSheet,
                      ChildTestRequestSheet, SpouseTestRequestSheet,
                      PrincipalPatientPrescriptionForm, ChildPrescriptionForm,
-                     SpousePrescriptionForm,
+                     SpousePrescriptionForm, BookAppointment,
                      
                      )
 
@@ -79,9 +79,26 @@ class CreatePatientView(CreateAPIView):
                     child_serializer.save()
                 
             return Response({"message": "Patient file created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-    
-        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+
+        elif "first_name" in serializer.errors.keys():
+            error_message = f"First Name. " + serializer.errors["first_name"][0]
+        elif "last_name" in serializer.errors.keys():
+            error_message = f"Last Name. " + serializer.errors["last_name"][0]
+        elif "gender" in serializer.errors.keys():
+            error_message = f"Gender. " + serializer.errors["gender"][0]
+        elif "date_of_birth" in serializer.errors.keys():
+            error_message = f"date of birth. " + serializer.errors["date_of_birth"][0]
+        elif "patient_type" in serializer.errors.keys():
+            error_message = f"patient_type. " + serializer.errors["patient_type"][0]
+        
+        print("=======>", serializer.errors)
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateDoctorProfileView(CreateAPIView):
 
@@ -92,13 +109,36 @@ class CreateDoctorProfileView(CreateAPIView):
     def post(self, request,  format=None):
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             
             doctor = serializer.save(user=self.request.user, is_available=True)
             doctor.user.is_profile_completed = True
             doctor.user.save()
             return Response({"message": "Doctor profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "first_name" in serializer.errors.keys():
+            error_message = f"First Name. " + serializer.errors["first_name"][0]
+        elif "last_name" in serializer.errors.keys():
+            error_message = f"Last Name. " + serializer.errors["last_name"][0]
+        elif "gender" in serializer.errors.keys():
+            error_message = f"Gender. " + serializer.errors["gender"][0]
+        elif "specialty" in serializer.errors.keys():
+            error_message = f"Specialty. " + serializer.errors["specialty"][0]
+        elif "address" in serializer.errors.keys():
+            error_message = f"Address. " + serializer.errors["address"][0]
+        elif "city" in serializer.errors.keys():
+            error_message = f"City. " + serializer.errors["city"][0]
+        
+        elif "state" in serializer.errors.keys():
+            error_message = f"State. " + serializer.errors["state"][0]
+        elif "country" in serializer.errors.keys():
+            error_message = f"Country. " + serializer.errors["country"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GetDoctorDetailsView(APIView):
@@ -124,13 +164,34 @@ class CreateNurseProfileView(CreateAPIView):
     def post(self, request,  format=None):
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             
             nurse = serializer.save(user=self.request.user)
             nurse.user.is_profile_completed = True
             nurse.user.save()
             return Response({"message": "Nurse profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "first_name" in serializer.errors.keys():
+            error_message = f"First Name. " + serializer.errors["first_name"][0]
+        elif "last_name" in serializer.errors.keys():
+            error_message = f"Last Name. " + serializer.errors["last_name"][0]
+        elif "gender" in serializer.errors.keys():
+            error_message = f"Gender. " + serializer.errors["gender"][0]
+        
+        elif "address" in serializer.errors.keys():
+            error_message = f"Address. " + serializer.errors["address"][0]
+        elif "city" in serializer.errors.keys():
+            error_message = f"City. " + serializer.errors["city"][0]
+        
+        elif "state" in serializer.errors.keys():
+            error_message = f"State. " + serializer.errors["state"][0]
+        elif "country" in serializer.errors.keys():
+            error_message = f"Country. " + serializer.errors["country"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class GetNurseDetailsView(APIView):
@@ -156,13 +217,35 @@ class CreatePharmacistProfileView(CreateAPIView):
     def post(self, request,  format=None):
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             
             pharmacist = serializer.save(user=self.request.user)
             pharmacist.user.is_profile_completed = True
             pharmacist.user.save()
             return Response({"message": "Pharmacist profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "first_name" in serializer.errors.keys():
+            error_message = f"First Name. " + serializer.errors["first_name"][0]
+        elif "last_name" in serializer.errors.keys():
+            error_message = f"Last Name. " + serializer.errors["last_name"][0]
+        elif "gender" in serializer.errors.keys():
+            error_message = f"Gender. " + serializer.errors["gender"][0]
+       
+        elif "address" in serializer.errors.keys():
+            error_message = f"Address. " + serializer.errors["address"][0]
+        elif "city" in serializer.errors.keys():
+            error_message = f"City. " + serializer.errors["city"][0]
+        
+        elif "state" in serializer.errors.keys():
+            error_message = f"State. " + serializer.errors["state"][0]
+        elif "country" in serializer.errors.keys():
+            error_message = f"Country. " + serializer.errors["country"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
         
 
 class GetPharmacistDetailsView(APIView):
@@ -187,14 +270,36 @@ class CreateAccountantProfileView(CreateAPIView):
     def post(self, request,  format=None):
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             
             accounts = serializer.save(user=self.request.user)
             accounts.user.is_profile_completed = True
             accounts.user.save()
             return Response({"message": "Accounts/records profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "first_name" in serializer.errors.keys():
+            error_message = f"First Name. " + serializer.errors["first_name"][0]
+        elif "last_name" in serializer.errors.keys():
+            error_message = f"Last Name. " + serializer.errors["last_name"][0]
+        elif "gender" in serializer.errors.keys():
+            error_message = f"Gender. " + serializer.errors["gender"][0]
+        
+        elif "address" in serializer.errors.keys():
+            error_message = f"Address. " + serializer.errors["address"][0]
+        elif "city" in serializer.errors.keys():
+            error_message = f"City. " + serializer.errors["city"][0]
+        
+        elif "state" in serializer.errors.keys():
+            error_message = f"State. " + serializer.errors["state"][0]
+        elif "country" in serializer.errors.keys():
+            error_message = f"Country. " + serializer.errors["country"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class GetAccountsDetailsView(APIView):
    
@@ -219,15 +324,37 @@ class CreateLabTechnicianProfileView(CreateAPIView):
     def post(self, request,  format=None):
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
             
             lab = serializer.save(user=self.request.user)
             lab.user.is_profile_completed = True
             lab.user.save()
      
             return Response({"message": "Lab Technician profile created successfully.", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": "An error occured, please try again."}, status=status.HTTP_400_BAD_REQUEST)
-   
+        
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "first_name" in serializer.errors.keys():
+            error_message = f"First Name. " + serializer.errors["first_name"][0]
+        elif "last_name" in serializer.errors.keys():
+            error_message = f"Last Name. " + serializer.errors["last_name"][0]
+        elif "gender" in serializer.errors.keys():
+            error_message = f"Gender. " + serializer.errors["gender"][0]
+       
+        elif "address" in serializer.errors.keys():
+            error_message = f"Address. " + serializer.errors["address"][0]
+        elif "city" in serializer.errors.keys():
+            error_message = f"City. " + serializer.errors["city"][0]
+        
+        elif "state" in serializer.errors.keys():
+            error_message = f"State. " + serializer.errors["state"][0]
+        elif "country" in serializer.errors.keys():
+            error_message = f"Country. " + serializer.errors["country"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
         
 class GetLabDetailsView(APIView):
     
@@ -248,7 +375,7 @@ class ListPatientsView(APIView):
     An endpoint to list patients
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = PatientPrincipalSerializer
 
     def get(self, request, *args, **kwargs):
@@ -264,7 +391,7 @@ class GetPatientView(APIView):
     An endpoint to get specific patient
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = PatientPrincipalSerializer
 
     def get(self, request, file_number, *args, **kwargs):
@@ -284,7 +411,7 @@ class GetSpouseView(APIView):
     An endpoint to get specific spouse
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = SpouseSingleSerializer
 
     def get(self, request, file_number, *args, **kwargs):
@@ -304,7 +431,7 @@ class GetChildView(APIView):
     An endpoint to get specific child
     """
     
-    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician,)
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor | IsAuthenticatedPharmacist | IsAuthenticatedLabTechnician | IsAuthenticatedNurse,)
     serializer_class = ChildrenSingleSerializer
 
     def get(self, request, file_number, *args, **kwargs):
@@ -475,7 +602,6 @@ class GetSpouseContinuationSheetView(APIView):
         return Response({"message": "No spouse available"}, status=status.HTTP_404_NOT_FOUND)
     
 
-
 class GetChildContinuationSheetView(APIView):
     """
     An endpoint to get child continuation sheet
@@ -506,17 +632,18 @@ class UpdatePrincipalContinuationSheetView(APIView):
     An endpoint to update principal continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = PrincipalContinuationSheetSerializer
 
     def post(self, request, slug, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
 
             description = serializer.validated_data["description"]
 
@@ -525,7 +652,7 @@ class UpdatePrincipalContinuationSheetView(APIView):
             except PrincipalContinuationSheet.DoesNotExist:
                 return Response({"message": "No patient sheet found"}, status=status.HTTP_404_NOT_FOUND)
             if patient_sheet:
-
+        
                 datetime_object = patient_sheet.updated_at
 
                 # Format the datetime object as required
@@ -533,31 +660,41 @@ class UpdatePrincipalContinuationSheetView(APIView):
 
                 print(formatted_date)
                 if patient_sheet.description:
-                    patient_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                    patient_sheet.description += f"{user_title} {last_name} on {formatted_date}\n {description}\n\n"
                 else:
-                    patient_sheet.description = f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                    patient_sheet.description = f"{user_title} {last_name} on {formatted_date}\n {description}\n\n"
                 patient_sheet.save()
                 serializer = self.serializer_class(patient_sheet)
                 return Response({"message": "Updated patient continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             return Response({"message": "No patient available"}, status=status.HTTP_404_NOT_FOUND)
-    
+        
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "description" in serializer.errors.keys():
+            error_message = f"Description. " + serializer.errors["description"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class UpdateSpouseContinuationSheetView(APIView):
     """
     An endpoint to update spouse continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = SpouseContinuationSheetSerializer
 
     def post(self, request, slug, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
 
             description = serializer.validated_data["description"]
 
@@ -572,32 +709,42 @@ class UpdateSpouseContinuationSheetView(APIView):
                 formatted_date = datetime_object.strftime("%d-%m-%Y")
 
                 if spouse_sheet.description:
-                    spouse_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                    spouse_sheet.description += f"{user_title} {last_name} on {formatted_date}\n {description}\n\n"
                 else:
-                    spouse_sheet.description = f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                    spouse_sheet.description = f"{user_title} {last_name} on {formatted_date}\n {description}\n\n"
                 spouse_sheet.save()
                 
                 serializer = self.serializer_class(spouse_sheet)
                 return Response({"message": "Updated spouse continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             return Response({"message": "No spouse available"}, status=status.HTTP_404_NOT_FOUND)
-    
+        
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "description" in serializer.errors.keys():
+            error_message = f"Description. " + serializer.errors["description"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class UpdateChildContinuationSheetView(APIView):
     """
     An endpoint to update child continuation sheet
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = ChildContinuationSheetSerializer
 
     def post(self, request, slug, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
 
         serializer = self.serializer_class(data=request.data, context={"request": request})
-        if serializer.is_valid(raise_exception=True):
+        if serializer.is_valid():
 
             description = serializer.validated_data["description"]
 
@@ -613,29 +760,38 @@ class UpdateChildContinuationSheetView(APIView):
                 formatted_date = datetime_object.strftime("%d-%m-%Y")
 
                 if child_sheet.description:
-                    child_sheet.description += f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                    child_sheet.description += f"{user_title} {last_name} on {formatted_date}\n {description}\n\n"
                 else:
-                    child_sheet.description = f"Dr {last_name} on {formatted_date}\n {description}\n\n"
+                    child_sheet.description = f"{user_title} {last_name} on {formatted_date}\n {description}\n\n"
                 child_sheet.save()
                 
                 serializer = self.serializer_class(child_sheet)
                 return Response({"message": "Updated child continuation sheet successfully", "data": serializer.data}, status=status.HTTP_200_OK)
             return Response({"message": "No child available"}, status=status.HTTP_404_NOT_FOUND)
-    
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "description" in serializer.errors.keys():
+            error_message = f"Description. " + serializer.errors["description"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateRequestPrincipalPatientTestView(APIView):
     """
     An endpoint for a doctor to request test on principal patient
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = PrincipalPatientTestRequestSerializer
 
     def post(self, request, patient_file_number, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
 
         try:
             patient = PatientPrincipal.objects.get(file_number=patient_file_number)
@@ -645,30 +801,40 @@ class CreateRequestPrincipalPatientTestView(APIView):
         request.data["principal_patient"] = patient.id
         serializer = self.serializer_class(data=request.data)
         
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             description = serializer.validated_data["doctor_request_description"]         
 
             
-            description = f"Test request by Dr {last_name}\n {description}"
+            description = f"Test request by {user_title} {last_name}\n {description}"
             serializer.save(doctor_request_description=description)
 
             return Response({"message": "Test request sent to lab successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "doctor_request_description" in serializer.errors.keys():
+            error_message = f"Description. " + serializer.errors["doctor_request_description"][0]
         
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateRequestSpouseTestView(APIView):
     """
     An endpoint for a doctor to request test on spouse
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = SpouseTestRequestSerializer
 
     def post(self, request, spouse_file_number, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
+
         try:
             spouse = Spouse.objects.get(file_number=spouse_file_number)
         except Spouse.DoesNotExist:
@@ -676,28 +842,39 @@ class CreateRequestSpouseTestView(APIView):
             
         request.data["spouse"] = spouse.id
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             description = serializer.validated_data["doctor_request_description"]         
 
-            description = f"Test request by Dr {last_name}\n {description}"
+            description = f"Test request by {user_title} {last_name}\n {description}"
             serializer.save(doctor_request_description=description)
 
             return Response({"message": "Test request sent to lab successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "doctor_request_description" in serializer.errors.keys():
+            error_message = f"Description. " + serializer.errors["doctor_request_description"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateRequestChildTestView(APIView):
     """
     An endpoint for a doctor to request test on child
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = ChildTestRequestSerializer
     def post(self, request, child_file_number, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
+
         try:
             child = Children.objects.get(file_number=child_file_number)
         except Children.DoesNotExist:
@@ -705,15 +882,24 @@ class CreateRequestChildTestView(APIView):
         
         request.data["child"] = child.id
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             description = serializer.validated_data["doctor_request_description"]         
 
-            description = f"Test request by Dr {last_name}\n {description}"
+            description = f"Test request by {user_title} {last_name}\n {description}"
             serializer.save(doctor_request_description=description)
 
             return Response({"message": "Test request sent to lab successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "doctor_request_description" in serializer.errors.keys():
+            error_message = f"Description. " + serializer.errors["doctor_request_description"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ListRequestPrincipalPatientTestView(APIView):
     """
@@ -871,7 +1057,14 @@ class UploadPrincipalPatientTestResultView(APIView):
             serializer = PrincipalPatientTestRequestSerializer(request_test)
 
             return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "upload_result" in serializer.errors.keys():
+            error_message = f"Result. " + serializer.errors["upload_result"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UploadSpouseTestResultView(APIView):
@@ -885,7 +1078,7 @@ class UploadSpouseTestResultView(APIView):
     def post(self, request, slug, *args, **kwargs):
 
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             upload_result = serializer.validated_data["upload_result"]         
 
@@ -900,7 +1093,14 @@ class UploadSpouseTestResultView(APIView):
             serializer = SpouseTestRequestSerializer(request_test)
 
             return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "upload_result" in serializer.errors.keys():
+            error_message = f"Result. " + serializer.errors["upload_result"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 class UploadChildTestResultView(APIView):
     """
@@ -913,7 +1113,7 @@ class UploadChildTestResultView(APIView):
     def post(self, request, slug, *args, **kwargs):
 
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid(raise_exception=True):  
+        if serializer.is_valid():  
 
             upload_result = serializer.validated_data["upload_result"]         
 
@@ -928,6 +1128,14 @@ class UploadChildTestResultView(APIView):
             serializer = ChildTestRequestSerializer(request_test)
 
             return Response({"message": "Uploaded test result successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "upload_result" in serializer.errors.keys():
+            error_message = f"Result. " + serializer.errors["upload_result"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CreatePrincipalPatientPrescriptionView(APIView):
@@ -935,14 +1143,15 @@ class CreatePrincipalPatientPrescriptionView(APIView):
     An endpoint for a doctor to create prescription
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = PrincipalPatientPrescriptionFormSerializer
 
     def post(self, request, patient_file_number, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
 
         try:
             patient = PatientPrincipal.objects.get(file_number=patient_file_number)
@@ -957,7 +1166,7 @@ class CreatePrincipalPatientPrescriptionView(APIView):
             description = serializer.validated_data["doctor_prescription"]   
               
 
-            description = f"Prescription prescribed by Dr {last_name}\n {description}\n\n"
+            description = f"Prescription prescribed by {user_title} {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
 
             ## update patient continuation sheet
@@ -968,22 +1177,31 @@ class CreatePrincipalPatientPrescriptionView(APIView):
             patient.patient_principal_principal_continuation_sheet.save()
             
             return Response({"message": "Patient prescription created and sent to pharmacy successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "doctor_prescription" in serializer.errors.keys():
+            error_message = f"Prescription. " + serializer.errors["doctor_prescription"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateChildPrescriptionView(APIView):
     """
     An endpoint for a doctor to child prescription
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = ChildPrescriptionFormSerializer
 
     def post(self, request, child_file_number, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
         try:
             child = Children.objects.get(file_number=child_file_number)
         except Children.DoesNotExist:
@@ -995,7 +1213,7 @@ class CreateChildPrescriptionView(APIView):
 
             description = serializer.validated_data["doctor_prescription"]         
 
-            description = f"Prescription prescribed by Dr {last_name}\n {description}\n\n"
+            description = f"Prescription prescribed by {user_title} {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
 
              ## update patient continuation sheet
@@ -1006,22 +1224,31 @@ class CreateChildPrescriptionView(APIView):
             child.child_child_continuation_sheet.save()
             
             return Response({"message": "Patient prescription created and sent to pharmacy successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "doctor_prescription" in serializer.errors.keys():
+            error_message = f"Prescription. " + serializer.errors["doctor_prescription"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateSpousePrescriptionView(APIView):
     """
     An endpoint for a doctor to create spouse prescription
     """
     
-    permission_classes = (IsAuthenticatedDoctor,)
+    permission_classes = (IsAuthenticatedDoctor | IsAuthenticatedNurse,)
     serializer_class = SpousePrescriptionFormSerializer
 
     def post(self, request, spouse_file_number, *args, **kwargs):
 
         user = self.request.user
 
-        last_name = user.user_doctor.last_name
+        last_name = user.user_doctor.last_name if user.is_doctor else user.user_nurse.last_name
+        user_title = 'Dr.' if user.is_doctor else "RN."
         try:
             spouse = Spouse.objects.get(file_number=spouse_file_number)
         except Spouse.DoesNotExist:
@@ -1033,7 +1260,7 @@ class CreateSpousePrescriptionView(APIView):
         
             description = serializer.validated_data["doctor_prescription"]         
 
-            description = f"Prescription prescribed by Dr {last_name}\n {description}\n\n"
+            description = f"Prescription prescribed by {user_title} {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
 
              ## update patient continuation sheet
@@ -1044,8 +1271,15 @@ class CreateSpousePrescriptionView(APIView):
             spouse.spouse_spouse_continuation_sheet.save()
 
             return Response({"message": "Patient prescription created and sent to pharmacy successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
-        return Response({"message": serializer.errors, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "doctor_prescription" in serializer.errors.keys():
+            error_message = f"Prescription. " + serializer.errors["doctor_prescription"][0]
         
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class ListPrincipalPatientPrescriptionView(APIView):
     """
@@ -1340,9 +1574,17 @@ class BillPrincipalPatientPrescriptionView(APIView):
             serializer_prescription = PrincipalPatientPrescriptionFormSerializer(prescription)
 
             return Response({"message": "Prescription billing made successfully", "data": serializer_prescription.data}, status=status.HTTP_200_OK)
-        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
         
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "amount" in serializer.errors.keys():
+            error_message = f"Amount. " + serializer.errors["amount"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
 
+        
 class BillSpousePrescriptionView(APIView):
     """
     An endpoint to bill payment spouse prescription
@@ -1368,8 +1610,15 @@ class BillSpousePrescriptionView(APIView):
             serializer_prescription = SpousePrescriptionFormSerializer(prescription)
 
             return Response({"message": "Prescription billing made successfully", "data": serializer_prescription.data}, status=status.HTTP_200_OK)
-        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "amount" in serializer.errors.keys():
+            error_message = f"Amount. " + serializer.errors["amount"][0]
         
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class BillChildPrescriptionView(APIView):
     """
@@ -1396,5 +1645,161 @@ class BillChildPrescriptionView(APIView):
             serializer_prescription = ChildPrescriptionFormSerializer(prescription)
 
             return Response({"message": "Prescription billing made successfully", "data": serializer_prescription.data}, status=status.HTTP_200_OK)
-        return Response({"message": serializer.errors, "data": None}, status=status.HTTP_400_BAD_REQUEST)
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "amount" in serializer.errors.keys():
+            error_message = f"Amount. " + serializer.errors["amount"][0]
         
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListDoctorsView(APIView):
+    """
+    An endpoint to list doctors
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+    serializer_class = DoctorProfileSerializer
+
+    def get(self, request, *args, **kwargs):
+        doctors = Doctor.objects.filter(is_available=True)
+        if doctors:
+            serializer = self.serializer_class(doctors, many=True)
+            return Response({"message": "Retrieved doctors successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No doctor found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class BookAppointmentView(APIView):
+    """
+    An endpoint to create Book Appointment
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord,)
+    serializer_class = BookAppointmentSerializer
+
+    def post(self, request, *args, **kwargs):
+
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            patient_slug = request.data.get("patient_slug")
+            doctor_profile_slug = request.data.get("doctor_profile_slug")
+            
+            if not patient_slug or not doctor_profile_slug:
+                return Response({"message": "Patient slug and doctor slug must be provided.", "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                doctor = Doctor.objects.get(slug=doctor_profile_slug)
+            except Doctor.DoesNotExist:
+                return Response({"message": "No Doctor found", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                doctor_user = doctor.user
+            except Exception as e:
+                return Response({"message": "No Doctor user found", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
+            try:
+                patient = PatientPrincipal.objects.get(slug=patient_slug)
+            except PatientPrincipal.DoesNotExist:
+                return Response({"message": "No PatientPrincipal found", "status": status.HTTP_404_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
+            
+            if patient.has_appointment:
+                return Response({"message": "Patient already has an active appointment", "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer.save(patient=patient, doctor_profile=doctor, doctor_user=doctor_user)
+            patient.has_appointment = True
+            patient.save()
+            return Response({"message": f"Appointment created and sent to Dr {doctor.last_name} successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        
+        error_message = None
+       
+        if "non_field_errors" in serializer.errors.keys():
+            error_message = f"{serializer.errors['non_field_errors'][0]}"
+        elif "patient" in serializer.errors.keys():
+            error_message = f"Patient. " + serializer.errors["patient"][0]
+        elif "doctor_profile" in serializer.errors.keys():
+            error_message = f"Doctor profile. " + serializer.errors["doctor_profile"][0]
+        elif "doctor_user" in serializer.errors.keys():
+            error_message = f"Doctor user. " + serializer.errors["doctor_user"][0]
+        
+        return Response({"message": error_message, "data": None, "status": status.HTTP_400_BAD_REQUEST}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ListAppointmentsView(APIView):
+    """
+    An endpoint to list appointments
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor,)
+    serializer_class = BookAppointmentSerializer
+
+    def get(self, request, *args, **kwargs):
+        appointments = BookAppointment.objects.filter(is_attended=False)
+        if appointments:
+            serializer = self.serializer_class(appointments, many=True)
+            return Response({"message": "Retrieved appointments successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No appointment found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class GetPatientAppointmentsView(APIView):
+    """
+    An endpoint to get a patient appointment
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor,)
+    serializer_class = BookAppointmentSerializer
+
+    def get(self, request, slug, *args, **kwargs):
+
+        try:
+            appointment = BookAppointment.objects.get(slug=slug)
+        except BookAppointment.DoesNotExist:
+            return Response({"message": "No BookAppointment found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if appointment:
+            serializer = self.serializer_class(appointment)
+            return Response({"message": "Retrieved an appointment successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No appointment found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class CompletePatientAppointmentsView(APIView):
+    """
+    An endpoint to complete a patient appointment and mark as attended
+    """
+    
+    permission_classes = (IsAuthenticatedAccountsRecord | IsAuthenticatedDoctor,)
+    serializer_class = BookAppointmentSerializer
+
+    def post(self, request, slug, *args, **kwargs):
+
+        try:
+            appointment = BookAppointment.objects.get(slug=slug)
+        except BookAppointment.DoesNotExist:
+            return Response({"message": "No BookAppointment found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if appointment:
+            appointment.is_attended = True
+            appointment.save()
+            # make patient has appoint false
+            appointment.patient.has_appointment = False
+            appointment.patient.save()
+
+            serializer = self.serializer_class(appointment)
+            return Response({"message": "Appointment completed successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No appointment found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+class ListDoctorAppointmentsView(APIView):
+    """
+    An endpoint to list of doctor appointments
+    """
+    
+    permission_classes = (IsAuthenticatedDoctor,)
+    serializer_class = BookAppointmentSerializer
+
+    def get(self, request, *args, **kwargs):
+        appointments = BookAppointment.objects.filter(doctor_user=self.request.user, is_attended=False)
+        if appointments:
+            serializer = self.serializer_class(appointments, many=True)
+            return Response({"message": "Retrieved appointments successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+        return Response({"message": "No appointment found"}, status=status.HTTP_404_NOT_FOUND)
+    
