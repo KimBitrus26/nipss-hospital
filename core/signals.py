@@ -18,7 +18,7 @@ from .models import (Doctor, Pharmacist, LabTechnician,
 from nipps_hms.notification import Notifications, NotificationMessages
 from accounts.models import User
 
-url = "http://127.0.0.1:5000/notify"
+url = "http://172.16.0.10:5000/notify"
 
 @receiver(post_save, sender=PatientPrincipal)
 def create_principal_continuation_sheet(sender, instance, created, **kwargs):
