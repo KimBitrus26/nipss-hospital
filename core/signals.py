@@ -18,6 +18,8 @@ from .models import (Doctor, Pharmacist, LabTechnician,
 from nipps_hms.notification import Notifications, NotificationMessages
 from accounts.models import User
 
+url = "http://127.0.0.1:5000/notify"
+
 @receiver(post_save, sender=PatientPrincipal)
 def create_principal_continuation_sheet(sender, instance, created, **kwargs):
     
@@ -47,8 +49,7 @@ def send_prescription_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_pharmarcist_prescription_notification()
         title = "NEW PRESCRIPTION" 
-        url = f"http://localhost:5000/notify" 
-    
+        
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -76,8 +77,7 @@ def send_spouse_prescription_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_pharmarcist_prescription_notification()
         title = "NEW PRESCRIPTION" 
-        url = f"http://localhost:5000/notify" 
-    
+       
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -104,8 +104,6 @@ def send_child_prescription_notification(sender, instance, created, **kwargs):
         content = NotificationMessages.send_pharmarcist_prescription_notification()
         title = "NEW PRESCRIPTION" 
 
-        url = f"http://localhost:5000/notify" 
-    
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -134,8 +132,7 @@ def send_test_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_lab_test_notification()
         title = "NEW TEST" 
-        url = "http://127.0.0.1:5000/notify" 
-    
+        
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -163,8 +160,7 @@ def send_spouse_test_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_lab_test_notification()
         title = "NEW TEST" 
-        url = "http://127.0.0.1:5000/notify" 
-    
+        
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -192,8 +188,7 @@ def send_child_test_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_lab_test_notification()
         title = "NEW TEST" 
-        url = "http://127.0.0.1:5000/notify" 
-    
+       
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -222,8 +217,7 @@ def send_doctor_appointment_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_doctor_appointment_notification()
         
-        url = "http://127.0.0.1:5000/notify" 
-    
+        
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }
@@ -243,8 +237,7 @@ def send_doctor_appointment_notification(sender, instance, created, **kwargs):
 
         content = NotificationMessages.send_doctor_appointment_completed_notification()
         
-        url = "http://127.0.0.1:5000/notify" 
-    
+        
         AUTHORIZED_HEADER = {
                 "Content-Type": "application/json",
             }

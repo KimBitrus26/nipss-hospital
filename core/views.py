@@ -1164,7 +1164,6 @@ class CreatePrincipalPatientPrescriptionView(APIView):
         if serializer.is_valid():  
 
             description = serializer.validated_data["doctor_prescription"]   
-              
 
             description = f"Prescription prescribed by {user_title} {last_name}\n {description}\n\n"
             serializer.save(doctor_prescription=description)
@@ -1515,7 +1514,7 @@ class PaySpousePrescriptionView(APIView):
         except SpousePrescriptionForm.DoesNotExist:
             return Response({"message": "No spouse prescription found"}, status=status.HTTP_404_NOT_FOUND)
         
-        if not prescription.is_billed:
+        if not prescription.is_billed: 
             return Response({"message": "Prescription not bill yet", "data": None}, status=status.HTTP_400_BAD_REQUEST)
         
         prescription.is_paid = True
@@ -1527,7 +1526,7 @@ class PaySpousePrescriptionView(APIView):
 
 class PayChildPrescriptionView(APIView):
     """
-    An endpoint to view a specific  child prescription
+    An endpoint to make payment child prescription
     """
     
     permission_classes = (IsAuthenticatedAccountsRecord,)
@@ -1801,5 +1800,5 @@ class ListDoctorAppointmentsView(APIView):
         if appointments:
             serializer = self.serializer_class(appointments, many=True)
             return Response({"message": "Retrieved appointments successfully", "data": serializer.data}, status=status.HTTP_200_OK)
-        return Response({"message": "No appointment found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"message": "No appointment found", "data": None}, status=status.HTTP_200_OK) #temp
     
