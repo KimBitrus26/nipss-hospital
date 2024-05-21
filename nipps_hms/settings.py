@@ -13,17 +13,12 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG')
 
-
-ALLOWED_HOSTS = [
-    "18.133.192.127", 
-    "127.0.0.1", 
-    "ec2-18-133-192-127.eu-west-2.compute.amazonaws.com",
-    "localhost",]
-
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
 INSTALLED_APPS = [
+    # "daphne",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -33,6 +28,8 @@ INSTALLED_APPS = [
 
     'accounts.apps.AccountsConfig',
     'core.apps.CoreConfig',
+
+    "fcm_django",
 
     "corsheaders",
     'storages',
@@ -49,6 +46,7 @@ INSTALLED_APPS = [
 SITE_ID = 1
 
 AUTH_USER_MODEL = "accounts.User"
+FRONTEND_BASE_URL = "http://127.0.0.1:3000"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -82,14 +80,26 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'nipps_hms.wsgi.application'
+# ASGI_APPLICATION = 'nipps_hms.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+            
+        },
+    },
+}
+CHANNELS_WS_PROTOCOLS = ["graphql-ws", ]
 
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://localhost:3000",
-    
-    
+    "http://127.0.0.1:3000",
+    "http://172.16.0.10:3000",    
 ]
 
 # Database
@@ -128,6 +138,7 @@ REST_FRAMEWORK = {
 }
 # enable JWT authentication in dj-rest-auth.
 REST_USE_JWT = True
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=10),
@@ -219,6 +230,8 @@ ACCOUNT_EMAIL_VERIFICATION = None
 REST_AUTH_SERIALIZERS = {
     'LOGIN_SERIALIZER': 'accounts.serializers.CustomLoginSerializer',
     'USER_DETAILS_SERIALIZER': 'accounts.serializers.CustomUserDetailsSerializer',
+    "PASSWORD_RESET_SERIALIZER": "accounts.serializers.PasswordResetSerializer",
+    "PASSWORD_RESET_CONFIRM_SERIALIZER": "accounts.serializers.CustomPasswordResetConfirmSerializer"
 }
 
 REST_AUTH_REGISTER_SERIALIZERS = {
@@ -245,3 +258,7 @@ CELERY_ACCEPT_CONTENT = ['application/json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
+
+OLD_PASSWORD_FIELD_ENABLED = True
+CUSTOM_PASSWORD_RESET = f"{FRONTEND_BASE_URL}/nipss/token-password/"
+

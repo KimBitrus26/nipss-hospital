@@ -78,6 +78,8 @@ class User(AbstractUser):
     is_lab_technician = models.BooleanField(_("Is Lab Technician"), default=False)
     is_pharmacist = models.BooleanField(_("Is Phamacist"), default=False)
     is_account = models.BooleanField(_("Is Accountant"), default=False)
+
+    fcm_device_registered = models.BooleanField(default=False)
     
     is_staff = models.BooleanField(_("Staff?"), default=False)
     is_superuser = models.BooleanField(_("Superuser?"), default=False)

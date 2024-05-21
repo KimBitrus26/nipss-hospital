@@ -5,6 +5,13 @@ from dj_rest_auth.serializers import LoginSerializer
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
+from django.contrib.auth.forms import SetPasswordForm
+from django.utils.html import strip_tags
+from django.utils.encoding import force_str
+from rest_framework.exceptions import ValidationError
+
+from .user_password import CustomPasswordResetForm
 
 from .models import User, OTP_LENGTH
 
@@ -91,3 +98,81 @@ class CustomLoginSerializer(LoginSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields.pop('username')
+
+
+class FCMDeviceSerializer(serializers.Serializer):
+    registration_token = serializers.CharField(required=True)
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password_reset_form_class = CustomPasswordResetForm
+
+    def validate_email(self, value):
+        self.reset_form = self.password_reset_form_class(data=self.initial_data)
+
+        if not self.reset_form.is_valid():
+            raise serializers.ValidationError(_('Error'))
+
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(_('Invalid e-mail address'))
+        return value
+
+    def save(self):
+        
+        request = self.context.get('request')
+        opts = {
+            'use_https': request.is_secure(),
+            'from_email': getattr(settings, 'DEFAULT_FROM_EMAIL'),
+            'subject_template_name': 'registration/password_reset_subject2.txt',
+            'email_template_name': 'registration/send_forgot_password_email.html',
+        }
+        self.reset_form.save(**opts)
+
+
+class CustomPasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Serializer for confirming a password reset attempt.
+    """
+    new_password1 = serializers.CharField(max_length=128)
+    new_password2 = serializers.CharField(max_length=128)
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    set_password_form_class = SetPasswordForm
+
+    _errors = {}
+    user = None
+    set_password_form = None
+
+    def custom_validation(self, attrs):
+        pass
+
+    def validate(self, attrs):
+
+        from django.contrib.auth.tokens import default_token_generator
+        from django.utils.http import urlsafe_base64_decode as uid_decoder
+
+        try:
+            uid = force_str(uid_decoder(attrs['uid']))
+            self.user = User._default_manager.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise ValidationError({'uid': ['Invalid value']})
+
+        if not default_token_generator.check_token(self.user, attrs['token']):
+            raise ValidationError({'token': ['Invalid value']})
+
+        self.custom_validation(attrs)
+        # Construct SetPasswordForm instance
+        self.set_password_form = self.set_password_form_class(
+            user=self.user, data=attrs,
+        )
+        if not self.set_password_form.is_valid():
+            raise serializers.ValidationError(self.set_password_form.errors)
+
+        return attrs
+
+    def save(self):
+        return self.set_password_form.save()
+
+    

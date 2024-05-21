@@ -10,7 +10,7 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('email',)
     fieldsets = (
         (None, {'fields': ('email', 'password', 'is_profile_completed', 'is_nurse',   'is_account',
-        'is_doctor', 'is_pharmacist', "is_lab_technician")}),
+        'is_doctor', 'is_pharmacist', "is_lab_technician", "fcm_device_registered")}),
         ('Permissions', {'fields': ('is_staff', 'is_active','is_superuser')}),
     )   
     add_fieldsets = (
@@ -18,7 +18,7 @@ class CustomUserAdmin(UserAdmin):
         'classes': ('wide',),
         'fields': ('email', 'password1', 'password2', 'send_password', 
                     'is_profile_completed', 'is_nurse',  'is_account', 
-                    'is_doctor', 'is_pharmacist', "is_lab_technician", ),
+                    'is_doctor', 'is_pharmacist', "is_lab_technician", "fcm_device_registered",),
     }),
 ) 
     search_fields = ('email',)

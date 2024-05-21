@@ -32,7 +32,9 @@ from .views import (
                     GetSpousePrescriptionView, PayChildPrescriptionView,
                     PayPrincipalPatientPrescriptionView, PaySpousePrescriptionView,
                     BillChildPrescriptionView, BillSpousePrescriptionView,
-                    BillPrincipalPatientPrescriptionView,
+                    BillPrincipalPatientPrescriptionView, ListDoctorsView,
+                    BookAppointmentView, ListAppointmentsView, GetPatientAppointmentsView,
+                    CompletePatientAppointmentsView, ListDoctorAppointmentsView,
                     
                     )
 
@@ -115,5 +117,14 @@ urlpatterns = [
     path("bill-spouse-prescription/<slug:slug>/", BillSpousePrescriptionView.as_view(), name="bill_spouse_prescription"),
     path("bill-child-prescription/<slug:slug>/", BillChildPrescriptionView.as_view(), name="bill_child_prescription"),
 
+    path("list-doctors/", ListDoctorsView.as_view(), name="list_doctors"),
 
+
+    path("book-appointment/", BookAppointmentView.as_view(), name="book_appointment"),
+    path("list-appointments/", ListAppointmentsView.as_view(), name="list_appointment"),
+    path("get-appointment/<slug:slug>/", GetPatientAppointmentsView.as_view(), name="get_appointment"),
+    path("complete-appointment/<slug:slug>/", CompletePatientAppointmentsView.as_view(), name="complete_appointment"),
+    path("list-appointments/", ListAppointmentsView.as_view(), name="list_appointment"),
+    path("doctors-appointments/", ListDoctorAppointmentsView.as_view(), name="doctor_appointments"),
+    
 ]
