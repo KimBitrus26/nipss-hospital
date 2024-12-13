@@ -46,7 +46,7 @@ INSTALLED_APPS = [
 SITE_ID = 1
 
 AUTH_USER_MODEL = "accounts.User"
-FRONTEND_BASE_URL = "http://172.16.0.10:3001"
+FRONTEND_BASE_URL = "http://172.16.0.10:3000"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
